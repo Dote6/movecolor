@@ -890,13 +890,13 @@ rule("시간 내 영웅 미선택 + 늦은 참여 사망 by KISUM")
 
 	action
 	{
-		Set Ultimate Ability Enabled(Event Player, False);
+		Teleport(Event Player, Global.ArenaCentre);
 		Wait(1, Ignore Condition);
-		Enable Death Spectate All Players(Event Player);
-		Kill(Event Player, Null);
-		Big Message(Event Player, Custom String("다음 게임까지 잠시만 기다려 주세요!"));
-		Wait(1, Abort When False);
-		Loop If Condition Is True;
+		disabled Enable Death Spectate All Players(Event Player);
+		disabled Kill(Event Player, Null);
+		Big Message(Event Player, Custom String("늦은 참여로 이번 게임에서 이길 수 없습니다."));
+		disabled Wait(1, Abort When False);
+		disabled Loop If Condition Is True;
 	}
 }
 
@@ -6875,7 +6875,7 @@ rule("[맥크리] : 구르기 사용 가능 by KISUM")
 	}
 }
 
-rule("[아나] : 능력 설명 *")
+disabled rule("[아나] : 능력 설명 *")
 {
 	event
 	{
@@ -6930,7 +6930,7 @@ disabled rule("[아나] : 생체 수류탄 - 수면 by KISUM")
 	}
 }
 
-rule("[아나] : 나노 강화제 - 수면 10라운드 이전 by KISUM")
+disabled rule("[아나] : 나노 강화제 - 수면 10라운드 이전 by KISUM")
 {
 	event
 	{
@@ -6953,7 +6953,7 @@ rule("[아나] : 나노 강화제 - 수면 10라운드 이전 by KISUM")
 	}
 }
 
-rule("[아나] : 나노 강화제 - 수면 with KISUM")
+disabled rule("[아나] : 나노 강화제 - 수면 with KISUM")
 {
 	event
 	{
@@ -6982,7 +6982,7 @@ rule("[아나] : 나노 강화제 - 수면 with KISUM")
 	}
 }
 
-rule("[아나] : 주변에 자는 적 존재 by KISUM")
+disabled rule("[아나] : 주변에 자는 적 존재 by KISUM")
 {
 	event
 	{
@@ -7005,7 +7005,7 @@ rule("[아나] : 주변에 자는 적 존재 by KISUM")
 	}
 }
 
-rule("[아나] : 적군 업기 by KISUM")
+disabled rule("[아나] : 적군 업기 by KISUM")
 {
 	event
 	{
@@ -7038,7 +7038,7 @@ rule("[아나] : 적군 업기 by KISUM")
 	}
 }
 
-rule("[아나] : 주변에 자는 적 없음 by KISUM")
+disabled rule("[아나] : 주변에 자는 적 없음 by KISUM")
 {
 	event
 	{
@@ -7061,7 +7061,7 @@ rule("[아나] : 주변에 자는 적 없음 by KISUM")
 	}
 }
 
-rule("[아나] : 적군 던지기 by KISUM")
+disabled rule("[아나] : 적군 던지기 by KISUM")
 {
 	event
 	{
@@ -7090,7 +7090,7 @@ rule("[아나] : 적군 던지기 by KISUM")
 	}
 }
 
-rule("[아나] : 업힌 적군 탈출 by KISUM")
+disabled rule("[아나] : 업힌 적군 탈출 by KISUM")
 {
 	event
 	{
@@ -7123,7 +7123,7 @@ rule("[아나] : 업힌 적군 탈출 by KISUM")
 	}
 }
 
-rule("[아나] : 아나 상태 이상 시 업은 적군 놓치기 by KISUM")
+disabled rule("[아나] : 아나 상태 이상 시 업은 적군 놓치기 by KISUM")
 {
 	event
 	{
@@ -7152,7 +7152,7 @@ rule("[아나] : 아나 상태 이상 시 업은 적군 놓치기 by KISUM")
 	}
 }
 
-rule("[아나] : 던지거나 탈출하거나 놓친 적군 자유 모드 by KISUM")
+disabled rule("[아나] : 던지거나 탈출하거나 놓친 적군 자유 모드 by KISUM")
 {
 	event
 	{
@@ -14144,7 +14144,7 @@ rule("브리기테 우클 특전 효과")
 	}
 }
 
-rule("[특전] 아나 좌클릭")
+disabled rule("[특전] 아나 좌클릭")
 {
 	event
 	{
@@ -14165,7 +14165,7 @@ rule("[특전] 아나 좌클릭")
 	}
 }
 
-rule("[특전] 아나 우클릭")
+disabled rule("[특전] 아나 우클릭")
 {
 	event
 	{
@@ -16081,11 +16081,11 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(브리기테), All Teams).ttek_text[1] = Custom String("궁을 사용하지 않은 채 E를 쓰면 적을 얼림");
 		Players On Hero(Hero(브리기테), All Teams).ttek_text[2] = Custom String("아빠 친구의 방패");
 		Players On Hero(Hero(브리기테), All Teams).ttek_text[3] = Custom String("방패 크기 대폭 증가");
-		Players On Hero(Hero(아나), All Teams).ttek_text[0] = Custom String("잘 시간이야 {0}", Ability Icon String(Hero(아나), Button(Ability 1)));
-		Players On Hero(Hero(아나), All Teams).ttek_text[1] = Custom String("수면총 쿨타임이 50% 감소됨 (영구)");
-		Players On Hero(Hero(아나), All Teams).ttek_text[2] = Custom String("금지약물 복용 {0}", Ability Icon String(Hero(로드호그), Button(
+		disabled Players On Hero(Hero(아나), All Teams).ttek_text[0] = Custom String("잘 시간이야 {0}", Ability Icon String(Hero(아나), Button(Ability 1)));
+		disabled Players On Hero(Hero(아나), All Teams).ttek_text[1] = Custom String("수면총 쿨타임이 50% 감소됨 (영구)");
+		disabled Players On Hero(Hero(아나), All Teams).ttek_text[2] = Custom String("금지약물 복용 {0}", Ability Icon String(Hero(로드호그), Button(
 			Secondary Fire)));
-		Players On Hero(Hero(아나), All Teams).ttek_text[3] = Custom String("궁극기 사용 시 자신의 속도가 빨라짐");
+		disabled Players On Hero(Hero(아나), All Teams).ttek_text[3] = Custom String("궁극기 사용 시 자신의 속도가 빨라짐");
 		Players On Hero(Hero(일리아리), All Teams).ttek_text[0] = Custom String("빠른 분출");
 		Players On Hero(Hero(일리아리), All Teams).ttek_text[1] = Custom String("치명타 공격 적중 시 SHIFT 쿨타임 2배 감소");
 		Players On Hero(Hero(일리아리), All Teams).ttek_text[2] = Custom String("빠른 태양 작렬");
@@ -16183,7 +16183,108 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(프레야), All Teams).ttek_text[1] = Custom String("맞은 적들에게 짧은 스턴 부여");
 		Players On Hero(Hero(프레야), All Teams).ttek_text[2] = Custom String("빠른 조준");
 		Players On Hero(Hero(프레야), All Teams).ttek_text[3] = Custom String("조준하는 동안 이동속도 증가");
+		Players On Hero(Hero(아나), All Teams).ttek_text[0] = Custom String("별을 향해");
+		Players On Hero(Hero(아나), All Teams).ttek_text[1] = Custom String("맞은 적들이 더 빨리 떠오름");
+		Players On Hero(Hero(아나), All Teams).ttek_text[2] = Custom String("재난지원궁");
+		Players On Hero(Hero(아나), All Teams).ttek_text[3] = Custom String("매 라운드마다 궁극기 게이지 +25%p");
 		"특전 활성화!"
 		All Players(All Teams).ttek_trigger = True;
+	}
+}
+
+rule("[아쿠아] : 능력 설명 by A080A *")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		아나;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Create HUD Text(Event Player, Custom String("{0} 구름을 향해", Icon String(Arrow: Up)), Null, Custom String(
+			" 패시브\n 맞은 적들이 공중으로 떠오름             "), Left, 8, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 7, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 하늘을 보세요!", Ability Icon String(Hero(아나), Button(Ultimate))), Null, Custom String(
+			" 궁극기\n 사용 시 한 라운드 동안 모든 적의 시선을 위로 고정시킴"), Left, 4, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
+	}
+}
+
+rule("[아쿠아] : 패시브 by YaksuStn (+좌클특전)")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		아나;
+	}
+
+	condition
+	{
+		Is Alive(Event Player) == True;
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		If(Event Player.ttek_left_enable == True);
+			Apply Impulse(Victim, Vector(0, 3, 0), 6, To Player, Cancel Contrary Motion);
+		Else;
+			Apply Impulse(Victim, Vector(0, 3, 0), 3, To Player, Cancel Contrary Motion);
+	}
+}
+
+rule("[아쿠아]: 궁극기")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		아나;
+	}
+
+	condition
+	{
+		Is Using Ultimate(Event Player) == True;
+		Is Alive(Event Player) == True;
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Big Message(All Players(All Teams), Custom String("{0} 아쿠아: 모두 하늘을 보세요!", Hero Icon String(Hero(아나))));
+		Start Facing(Filtered Array(All Living Players(All Teams), Current Array Element != Event Player), Up, 104.720, To World,
+			Direction and Turn Rate);
+		Wait Until(Match Time == 0, 99999);
+		Stop Facing(All Players(All Teams));
+	}
+}
+
+rule("아쿠아 우클특전")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		아나;
+	}
+
+	condition
+	{
+		Match Time >= 100;
+		Event Player.ttek_right_enable == True;
+	}
+
+	action
+	{
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 25);
+		Small Message(Event Player, Custom String("재난지원궁이 들어왔다!"));
 	}
 }
