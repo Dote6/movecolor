@@ -129,7 +129,6 @@ variables
 		78: mauga_effect3
 		79: mauga_effect4
 		80: random_vector
-		81: teleport_trigger
 		82: Out_side
 		83: aim_vector
 		84: aim_vector_
@@ -176,6 +175,7 @@ subroutines
 	10: Map2
 	11: QUEEN_END_COND
 	12: QUEEN_COL_CNG
+	13: BATI_TEL_TRIGGER
 }
 
 rule("초기 세팅 및 게임 설명 HUD (수정)")
@@ -353,58 +353,6 @@ rule("승리 HUD [개별]")
 		Enable Built-In Game Mode Music;
 		Enable Built-In Game Mode Announcer;
 		Declare Player Victory(Global.LivingPlayers);
-	}
-}
-
-rule("승리 HUD [1팀]")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Game Mode != Game Mode(데스매치);
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 1)) != 0;
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 2)) == 0;
-		Is Game In Progress == True;
-		Is Assembling Heroes == False;
-		Is In Setup == False;
-	}
-
-	action
-	{
-		Wait(1.900, Abort When False);
-		Enable Built-In Game Mode Music;
-		Enable Built-In Game Mode Announcer;
-		Declare Team Victory(Team 1);
-	}
-}
-
-rule("승리 HUD [2팀]")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Game Mode != Game Mode(데스매치);
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 1)) == 0;
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 2)) != 0;
-		Is Game In Progress == True;
-		Is Assembling Heroes == False;
-		Is In Setup == False;
-	}
-
-	action
-	{
-		Wait(1.900, Abort When False);
-		Enable Built-In Game Mode Music;
-		Enable Built-In Game Mode Announcer;
-		Declare Team Victory(Team 2);
 	}
 }
 
@@ -8154,6 +8102,7 @@ rule("[바티스트] : 세일러문 생성 by Dote6 (특전으로 인해, 남은
 			Event Player.right_end_ = Event Player.aim_vector_ + 4 * Vector(Cosine From Degrees(Global.bati_theta + 180), 0, Sine From Degrees(
 				Global.bati_theta + 180));
 			Wait(0.030, Ignore Condition);
+			Abort If(Event Player.ttek_left_enable);
 			Continue;
 	}
 }
@@ -8189,7 +8138,6 @@ rule("[바티스트] : 세일러문 trigger by Dote6")
 
 	condition
 	{
-		Event Player.teleport_trigger != 1;
 		Global.door_count > 0;
 		Angle Between Vectors(Players On Hero(Hero(바티스트), All Teams).left_end_ - Vector(X Component Of(Position Of(Event Player)),
 			Y Component Of(Players On Hero(Hero(바티스트), All Teams).aim_vector_), Z Component Of(Position Of(Event Player))),
@@ -8201,7 +8149,7 @@ rule("[바티스트] : 세일러문 trigger by Dote6")
 
 	action
 	{
-		Event Player.teleport_trigger = 1;
+		Start Rule(BATI_TEL_TRIGGER, Restart Rule);
 	}
 }
 
@@ -8209,14 +8157,8 @@ rule("[바티스트] : 세일러문 통과 by Dote6")
 {
 	event
 	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Event Player.teleport_trigger == 1;
+		Subroutine;
+		BATI_TEL_TRIGGER;
 	}
 
 	action
@@ -8255,7 +8197,6 @@ rule("[바티스트] : 세일러문 통과 by Dote6")
 				Damage(Event Player, Players On Hero(Hero(바티스트), All Teams), 100);
 			End;
 		End;
-		Event Player.teleport_trigger = 0;
 	}
 }
 
@@ -12446,269 +12387,6 @@ rule("What a colorful world by Dote6")
 	action
 	{
 		Chase Global Variable At Rate(colorchange, 100000000, 40, None);
-	}
-}
-
-rule("[Team] Shambali Monastery Sphere Spawnpoints, 4maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(샴발리 수도원);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 4);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(14.430, 10.600, 37.440));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(14.150, 15.600, 42.380));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(4.380, 14.600, 59.960));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-4.100, 11.600, 54.850));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(5.470, 9.460, 32.740));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-2.990, 10.600, 32.990));
-		Global.ArenaCentre = Vector(5.460, 9.750, 49.980);
-		Global.ArenaRadius = 22;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-53.280, 23.600, 112.870));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-39.060, 21.600, 105.380));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.180, 23.850, 88.650));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.430, 15.600, 88.660));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-51.790, 15.600, 81.290));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-40.660, 14.600, 66.210));
-		Global.ArenaCentre = Vector(-45.790, 16.530, 91.040);
-		Global.ArenaRadius = 31;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.360, 25.600, 121.670));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-1.810, 25.600, 128.670));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(6.650, 27.600, 117.560));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(5.530, 28.010, 104.140));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-7.520, 21.500, 98.740));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-22.240, 23.600, 109.380));
-		Global.ArenaCentre = Vector(-7.530, 25, 113.940);
-		Global.ArenaRadius = 20;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-53.200, 29.600, 185.890));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-27.880, 29.600, 163.250));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-55.500, 27.600, 167.230));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-50.740, 30.660, 151.290));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-33.860, 25.510, 150.550));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-38.300, 27.500, 182.260));
-		Global.ArenaCentre = Vector(-48.840, 26.800, 165.220);
-		Global.ArenaRadius = 27;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-	}
-}
-
-rule("[Team] Circuit Royal Sphere Spawnpoints, 4maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(서킷 로얄);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 4);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.060, 6.630, -44.160));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-37.760, 10.600, -34.070));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-37.380, 4.850, -23.040));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-27.310, 6.640, -11.790));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-10, 6.600, -15.030));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-13.100, 12.560, -18.090));
-		Global.ArenaCentre = Vector(-22.370, 5.830, -26.340);
-		Global.ArenaRadius = 23;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(9.480, 10.600, -41.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(9.040, 6.450, -16.580));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(30.230, 15.600, -18.680));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(16.310, 15.600, -44.860));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(26.770, 13.350, -29.390));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-1.750, 10.610, -30.350));
-		Global.ArenaCentre = Vector(15.160, 10.290, -31);
-		Global.ArenaRadius = 26;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(70.180, 19.550, 11.650));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(42.420, 15.560, 36.270));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(62.330, 15.560, -7.110));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(55.810, 15.560, 7.600));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(44.020, 20.560, 20.770));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(59.040, 11.560, 31.510));
-		Global.ArenaCentre = Vector(53.890, 12.960, 15.760);
-		Global.ArenaRadius = 30;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(108.750, 11.560, 11.880));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(93.610, 11.560, 32.470));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(83.550, 11.560, 16.190));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(90.440, 17.560, 12.040));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(100.420, 17.560, 28.100));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(108.340, 17.560, 12.060));
-		Global.ArenaCentre = Vector(98.370, 8.960, 18.250);
-		Global.ArenaRadius = 26;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-	}
-}
-
-rule("[Team] Midtown Sphere Spawnpoints, 5maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(미드타운);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 5);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-24.690, 11.590, 82.600));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-15.940, 4.350, 80.670));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-3.730, 4.350, 85.420));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(4.590, 4.590, 100.940));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-1.250, 9.120, 88.820));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-12.810, 4.590, 94.420));
-		Global.ArenaCentre = Vector(-16.430, 3.990, 99.530);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-17.160, 9.580, 49.470));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-9.480, 4.350, 48.310));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(8.460, 4.590, 51.630));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-0.130, 11.180, 65.510));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-14.780, 11.180, 62.830));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-2.580, 4.390, 69.990));
-		Global.ArenaCentre = Vector(-7.280, 3.750, 54.940);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(61.350, -1.560, 3.030));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(59.300, 7.450, -12.130));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(63.910, 8.440, 9.340));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(50.940, 9.270, 17.650));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(37.330, -0.520, 8.440));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(32.950, 6.440, -5.890));
-		Global.ArenaCentre = Vector(50.230, 7.880, 0.780);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 4, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(96.040, 11.800, -29.010));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(114.340, 8.490, -9.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(108.350, 3.440, -35.310));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(92.100, 4.440, -4.360));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(82.390, 4.450, -31.470));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(89.240, 4.440, -19.970));
-		Global.ArenaCentre = Vector(98.990, 3.840, -18.280);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(92.910, 5.440, -55.140));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(97.450, 12.450, -57.340));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(92.790, 12.450, -71.750));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(114.430, 3.440, -78.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(128.330, 1.580, -65.750));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(118.370, 4.440, -55.510));
-		Global.ArenaCentre = Vector(108.970, 2.840, -72.470);
-		Global.ArenaRadius = 30;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-	}
-}
-
-rule("[Team] Rialto Sphere Spawnpoints, 4maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(리알토);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 4);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(73.920, 4.360, -16.630));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(85.670, 4.350, -25.430));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(79.180, -0.650, -31.890));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(51.870, 0.360, -31.980));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(63.720, 0.350, -51.050));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(57.750, 5.350, -25.490));
-		Global.ArenaCentre = Vector(69.610, -1.400, -30.570);
-		Global.ArenaRadius = 26;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(14.640, -1.140, -77.620));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(13.830, -1.250, -58.070));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(27.220, -0.710, -53.200));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(34.200, 0.370, -86.010));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(38.060, 0.350, -52));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(34.860, 6.350, -68.510));
-		Global.ArenaCentre = Vector(31.130, -0.350, -68.540);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-23.650, -0.650, -29.270));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(3.980, 4.350, -35.160));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(1.330, 6.350, -52.970));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-15.610, 6.350, -48.140));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-3.130, 0.350, -55.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-30.210, -0.740, -54.100));
-		Global.ArenaCentre = Vector(-11.530, -1.370, -42.090);
-		Global.ArenaRadius = 28;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-26.070, -0.650, -79.510));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-26.700, 5.350, -85.020));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-24.870, 2.350, -102.630));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-42.320, 5.350, -80.860));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-41.070, 2.350, -103.230));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-49.870, 3.350, -89));
-		Global.ArenaCentre = Vector(-35.920, 1.410, -92.820);
-		Global.ArenaRadius = 23;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
 	}
 }
 
