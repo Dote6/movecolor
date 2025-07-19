@@ -69,6 +69,8 @@ variables
 		75: junoult_flag
 		76: junotarget
 		77: bati_theta
+		78: KING
+		79: king_triggered
 
 	player:
 		0: p_CurrentMode
@@ -176,6 +178,8 @@ subroutines
 	11: QUEEN_END_COND
 	12: QUEEN_COL_CNG
 	13: BATI_TEL_TRIGGER
+	14: TTEK_TRIGGER
+	15: TTEK_TRIGGER_2
 }
 
 rule("초기 세팅 및 게임 설명 HUD (수정)")
@@ -8102,7 +8106,6 @@ rule("[바티스트] : 세일러문 생성 by Dote6 (특전으로 인해, 남은
 			Event Player.right_end_ = Event Player.aim_vector_ + 4 * Vector(Cosine From Degrees(Global.bati_theta + 180), 0, Sine From Degrees(
 				Global.bati_theta + 180));
 			Wait(0.030, Ignore Condition);
-			Abort If(Event Player.ttek_left_enable);
 			Continue;
 	}
 }
@@ -12421,6 +12424,7 @@ rule("[특전] 활성화 -> 좌클/우클 대기 (추가 by Dote6) // 건드리�
 	condition
 	{
 		Event Player.ttek_trigger == True;
+		Global.RoundNumber < 10;
 		Has Spawned(Event Player) == True;
 		Is Alive(Event Player) == True;
 	}
@@ -12428,7 +12432,9 @@ rule("[특전] 활성화 -> 좌클/우클 대기 (추가 by Dote6) // 건드리�
 	action
 	{
 		Event Player.ttek_trigger = False;
-		Big Message(Event Player, Custom String("{0} 특전이 열렸습니다!", Icon String(Fire)));
+		If(Global.KING != Event Player);
+			Big Message(Event Player, Custom String("{0} 특전이 열렸습니다!", Icon String(Fire)));
+		End;
 		"공백용"
 		Create HUD Text(Event Player, Custom String(""), Custom String(""), Custom String(
 			" \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n "), Top, 9.500, Color(Violet), Color(
@@ -12540,6 +12546,7 @@ rule("[특전] 둠피스트 우클릭")
 
 	action
 	{
+		Wait Until(Is In Air(Event Player) == False, 99999);
 		Set Status(Victim, Null, Knocked Down, 1.250);
 	}
 }
@@ -13001,9 +13008,10 @@ rule("[특전] 시그마 우클릭")
 	{
 		Big Message(All Players(All Teams), Custom String("{0} 시그마 : 지구가! 너희에게 노래하고 있어!!", Hero Icon String(Hero(시그마))));
 		Damage(All Living Players(All Teams), Event Player, 100);
-		Apply Impulse(All Living Players(All Teams), Vector(0, -3, 0), 15, To Player, Cancel Contrary Motion);
+		Apply Impulse(Filtered Array(All Living Players(All Teams), Current Array Element != Event Player), Vector(0, -3, 0), 15,
+			To Player, Cancel Contrary Motion);
 		Wait(1.600, Ignore Condition);
-		Set Status(All Living Players(All Teams), Null, Knocked Down, 1.400);
+		Set Status(Filtered Array(All Living Players(All Teams), Current Array Element != Event Player), Null, Knocked Down, 1.400);
 	}
 }
 
@@ -14464,13 +14472,14 @@ rule("솔저: 76 우클 특전 효과")
 	condition
 	{
 		Event Player.ttek_right_enable == True;
-		Is Firing Primary(Event Player) == True;
-		Ability Cooldown(Event Player, Button(Secondary Fire)) != 0;
+		Is Using Ultimate(Event Player) == True;
 	}
 
 	action
 	{
 		Set Ability Cooldown(Event Player, Button(Secondary Fire), 0);
+		Wait(0.100, Ignore Condition);
+		Loop If Condition Is True;
 	}
 }
 
@@ -15659,16 +15668,12 @@ rule("[최적화, 코드 단축] 워크샵 맵 제외 모든 맵 통합 - 2 (기
 	}
 }
 
-rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영웅별 텍스트를 입력하세요 (정크랫 수정, Dote6, 250506)")
+rule("[특전, 왕] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영웅별 텍스트를 입력하세요 (왕 특혜 수정, 0719)")
 {
 	event
 	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Global.RoundNumber == 5;
+		Subroutine;
+		TTEK_TRIGGER;
 	}
 
 	action
@@ -15711,7 +15716,7 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(시그마), All Teams).ttek_text[1] = Custom String("시그마가 공중부양할 수 있음 (단 공중부양하는 동안 이동속도 감소)");
 		Players On Hero(Hero(시그마), All Teams).ttek_text[2] = Custom String("고중력 붕괴 {0}", Ability Icon String(Hero(시그마), Button(
 			Ability 2)));
-		Players On Hero(Hero(시그마), All Teams).ttek_text[3] = Custom String("SHIFT 사용 시 모두를 바닥으로 가라앉히고 넉다운 부여\n (자신 포함, 더이상 저중력 붕괴 사용불가)");
+		Players On Hero(Hero(시그마), All Teams).ttek_text[3] = Custom String("SHIFT 사용 시 모두를 바닥으로 가라앉히고 넉다운 부여\n (더 이상 저중력 붕괴 사용불가)");
 		Players On Hero(Hero(오리사), All Teams).ttek_text[0] = Custom String("공격 강화 {0}", Ability Icon String(Hero(오리사), Button(Ability 1)));
 		Players On Hero(Hero(오리사), All Teams).ttek_text[1] = Custom String("투창 및 수호의 창 쿨타임이 30% 감소됨 (영구)");
 		Players On Hero(Hero(오리사), All Teams).ttek_text[2] = Custom String("완전무적 {0}", Ability Icon String(Hero(오리사), Button(Ultimate)));
@@ -15810,7 +15815,7 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[0] = Custom String("움직이면 게이 {0}", Hero Icon String(Hero(라이프위버)));
 		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[1] = Custom String("움직이지 않는 동안 무적 상태 (최대 10회)");
 		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[2] = Custom String("로켓 난사");
-		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[3] = Custom String("좌클릭을 쓰면 우클릭 쿨타임이 돌아옴");
+		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[3] = Custom String("궁극기를 사용하는 동안 우클릭 쿨타임 무제한");
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[0] = Custom String("은신");
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[1] = Custom String("항상 은신 상태가 됨");
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[2] = Custom String("해킹");
@@ -15861,6 +15866,187 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(프레야), All Teams).ttek_text[2] = Custom String("빠른 조준");
 		Players On Hero(Hero(프레야), All Teams).ttek_text[3] = Custom String("조준하는 동안 이동속도 증가");
 		"특전 활성화!"
-		All Players(All Teams).ttek_trigger = True;
+		disabled All Players(All Teams).ttek_trigger = True;
+		If(Global.king_triggered == 1);
+			Global.KING.ttek_trigger = True;
+		Else If(Global.king_triggered == 2);
+			Filtered Array(All Players(All Teams), Global.KING != Current Array Element).ttek_trigger = True;
+	}
+}
+
+rule("[특전] 10라운드가 되면 남은 특전 자동으로 선택됨")
+{
+	event
+	{
+		Subroutine;
+		TTEK_TRIGGER_2;
+	}
+
+	action
+	{
+		Big Message(Event Player, Custom String("{0} 남은 특전이 자동으로 선택됩니다!", Icon String(Fire)));
+		Destroy HUD Text(Event Player.ttek_effect[0]);
+		Destroy HUD Text(Event Player.ttek_effect[1]);
+		Destroy HUD Text(Event Player.ttek_effect[2]);
+		Destroy HUD Text(Event Player.ttek_effect[3]);
+		Event Player.ttek_effect = Null;
+		Skip If(Event Player.ttek_left_enable == True, 3);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 40, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" {0} '{2}' 선택됨\r\n {1}",
+			Input Binding String(Button(Primary Fire)), Event Player.ttek_text[1], Event Player.ttek_text[0]), Left, 41, Color(Orange),
+			Color(흰색), Color(흰색), Visible To and String, Default Visibility);
+		Event Player.ttek_left_enable = True;
+		Skip If(Event Player.ttek_right_enable == True, 3);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 42, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" {0} '{2}' 선택됨\r\n {1}",
+			Input Binding String(Button(Secondary Fire)), Event Player.ttek_text[3], Event Player.ttek_text[2]), Left, 43, Color(Orange),
+			Color(흰색), Color(흰색), Visible To and String, Default Visibility);
+		Event Player.ttek_right_enable = True;
+	}
+}
+
+rule("[왕] 슬롯 0번 = 왕")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	action
+	{
+		Wait(3, Ignore Condition);
+		Global.KING = Random Value In Array(All Players(All Teams));
+	}
+}
+
+rule("[왕] 특전 활성화 조건 - 왕 스폰 (왕)")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Has Spawned(Global.KING) == True;
+		Is Alive(Global.KING) == True;
+		Global.king_triggered == 0;
+	}
+
+	action
+	{
+		Global.king_triggered = 1;
+		Start Rule(TTEK_TRIGGER, Restart Rule);
+		Wait(1, Ignore Condition);
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 특전을 즉시 선택하세요!", Icon String(Fire)));
+	}
+}
+
+rule("[특전] 특전 활성화 조건 - 5라운드 (왕 제외)")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Global.RoundNumber == 5;
+	}
+
+	action
+	{
+		Global.king_triggered = 2;
+		Start Rule(TTEK_TRIGGER, Restart Rule);
+	}
+}
+
+rule("[특전] 특전 활성화 조건 - 5라운드 (왕)")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Global.RoundNumber == 5;
+		Global.KING == Event Player;
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+	}
+
+	action
+	{
+		Start Rule(TTEK_TRIGGER_2, Restart Rule);
+	}
+}
+
+rule("[특전] 특전 활성화 조건 - 10라운드 (왕 제외)")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Global.RoundNumber == 10;
+		Global.KING != Event Player;
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+	}
+
+	action
+	{
+		Start Rule(TTEK_TRIGGER_2, Restart Rule);
+	}
+}
+
+rule("[특전] 특전 활성화 조건 - 10라운드 (왕)")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Global.RoundNumber == 10;
+		Global.KING == Event Player;
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+	}
+
+	action
+	{
+		Big Message(All Players(All Teams), Custom String("{0} 10라운드까지 게임을 끝내지 못한 왕은 사망합니다!", Icon String(Skull)));
+		While(Is Alive(Event Player));
+			Kill(Event Player, Null);
+			Wait(0.250, Ignore Condition);
+	}
+}
+
+rule("[왕] 왕 Text")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	action
+	{
+		Create HUD Text(Event Player, Null, Null, Custom String("{0} 왕: {1} {2}", Icon String(Fire), Global.KING, Hero Icon String(Hero Of(
+			Global.KING))), Right, 1.004, Color(흰색), Color(흰색), Color(Rose), Visible To and String, Default Visibility);
 	}
 }
