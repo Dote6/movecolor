@@ -219,7 +219,7 @@ rule("초기 세팅 및 게임 설명 HUD (수정)")
 			All Teams), Ability Icon String(Hero(메르시), Button(Ability 1))), Null, Null, Top, 0, Color(흰색), Color(흰색), Color(흰색), String,
 			Default Visibility);
 		Global.HUDR = Last Text ID;
-		Create HUD Text(All Players(All Teams), Custom String("제작 : KISUM / 250511 ver\r"), Custom String(
+		Create HUD Text(All Players(All Teams), Custom String("제작 : KISUM / 250712 ver\r"), Custom String(
 			" originator : THEFOOT\r, 파이리\r\n special thx : Dote6, YaksuStn\r\n server load : {0}\r\n {1} {2}번째 구역", Custom String(
 			"{0} | {1}", Server Load, Server Load Average), Current Map, 1 + Global.ArenaID), Custom String(
 			" the latest code : 69033                              "), Left, -2, Color(Orange), Color(흰색), Color(흰색), String,
@@ -511,7 +511,7 @@ rule("센터 비주얼 by KISUM")
 	{
 		Create Effect(All Players(All Teams), Light Shaft, Color(Yellow), Global.ArenaCentre + Vector(0, -10, 0), 0.075, None);
 		Create In-World Text(All Players(All Teams), Custom String("{0} RANKING\r\n\r\n{1}\r", Icon String(Skull), Custom String(
-			"11635 누구인\r\n9392 신월동1짱김정훈\r\n6753 KISUM\r\n6659 ww7865\r\n6541 전설\r\n6244 우아앙\r\n6068 Dote6\r\n5174 JUMP\r\n4927 고9마9웠어\r\n4547 상한푸딩")),
+			"11652 누구인\r\n10061 신월동1짱김정훈\r\n7456 KISUM\r\n7073 ww7865\r\n6595 전설\r\n6244 우아앙\r\n6121 Dote6\r\n5587 고9마9웠어\r\n5174 JUMP\r\n4631 YaksuStn")),
 			Global.ArenaCentre + Vector(0, 25, 0), 1.750, Do Not Clip, None, Color(흰색), Default Visibility);
 		Global.RANKER = -6;
 	}
@@ -576,8 +576,8 @@ rule("플레이어 비주얼 CL by KISUM")
 
 	condition
 	{
-		Array Contains(Array(Custom String("Dote6"), Custom String("JUMP"), Custom String("고9마9웠어"), Custom String("상한푸딩")), Custom String(
-			"{0}", Event Player)) == True;
+		Array Contains(Array(Custom String("Dote6"), Custom String("고9마9웠어"), Custom String("JUMP"), Custom String("YaksuStn")),
+			Custom String("{0}", Event Player)) == True;
 	}
 
 	action
@@ -600,7 +600,7 @@ rule("플레이어 비주얼 G by KISUM")
 
 	condition
 	{
-		Array Contains(Array(Custom String("레니아트"), Custom String("YaksuStn"), Custom String("양띵샌즈앤더맨"), Custom String("onmygod"),
+		Array Contains(Array(Custom String("상한푸딩"), Custom String("레니아트"), Custom String("양띵샌즈앤더맨"), Custom String("onmygod"),
 			Custom String("하리보와젤리")), Custom String("{0}", Event Player)) == True;
 	}
 
@@ -14839,7 +14839,7 @@ rule("솜브라 우클 특전 효과")
 	}
 }
 
-rule("시메트라 좌클 특전 효과")
+rule("[특전] 시메트라 좌클릭 - 버블버블 화상")
 {
 	event
 	{
@@ -14860,7 +14860,7 @@ rule("시메트라 좌클 특전 효과")
 	}
 }
 
-rule("시메트라 우클 특전 효과")
+rule("[특전] 시메트라 우클릭 - 좌클릭 활성화")
 {
 	event
 	{
@@ -14877,9 +14877,7 @@ rule("시메트라 우클 특전 효과")
 
 	action
 	{
-		Press Button(Event Player, Button(Secondary Fire));
-		Wait(Random Real(0.460, 0.540), Ignore Condition);
-		Loop If Condition Is True;
+		Set Primary Fire Enabled(Event Player, True);
 	}
 }
 
@@ -16044,9 +16042,10 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(자리야), All Teams).ttek_text[1] = Custom String("자리야가 주머니에 쏙♥ 들어갈 사이즈로 변경됨");
 		Players On Hero(Hero(자리야), All Teams).ttek_text[2] = Custom String("깃털같은 몸짓 {0}", Ability Icon String(Hero(메르시), Button(Jump)));
 		Players On Hero(Hero(자리야), All Teams).ttek_text[3] = Custom String("자리야의 이동 중력이 감소됨");
-		Players On Hero(Hero(정커퀸), All Teams).ttek_text[0] = Custom String("흡혈 루트");
+		Players On Hero(Hero(정커퀸), All Teams).ttek_text[0] = Custom String("흡혈 루트 {0}", Hero Icon String(Hero(정커퀸)));
 		Players On Hero(Hero(정커퀸), All Teams).ttek_text[1] = Custom String("근접 공격으로 흡혈 가능 (쿨타임: 3초)");
-		Players On Hero(Hero(정커퀸), All Teams).ttek_text[2] = Custom String("입체기동 톱니칼 II");
+		Players On Hero(Hero(정커퀸), All Teams).ttek_text[2] = Custom String("입체기동 톱니칼 II {0}", Ability Icon String(Hero(정커퀸), Button(
+			Secondary Fire)));
 		Players On Hero(Hero(정커퀸), All Teams).ttek_text[3] = Custom String("입체기동 톱니칼이 대폭 강화되지만, 도륙 사용 불가");
 		Players On Hero(Hero(D.Va), All Teams).ttek_text[0] = Custom String("쏠 수 있어! {0}", Ability Icon String(Hero(캐서디), Button(
 			Primary Fire)));
@@ -16138,10 +16137,10 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[1] = Custom String("항상 은신 상태가 됨");
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[2] = Custom String("해킹");
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[3] = Custom String("적을 해킹할 수 있음");
-		Players On Hero(Hero(시메트라), All Teams).ttek_text[0] = Custom String("냉온고문");
+		Players On Hero(Hero(시메트라), All Teams).ttek_text[0] = Custom String("냉온고문 {0}", Hero Icon String(Hero(토르비욘)));
 		Players On Hero(Hero(시메트라), All Teams).ttek_text[1] = Custom String("버블버블을 맞은 적에게 화상 부여");
-		Players On Hero(Hero(시메트라), All Teams).ttek_text[2] = Custom String("오토마우스");
-		Players On Hero(Hero(시메트라), All Teams).ttek_text[3] = Custom String("0.5초 간격으로 자동으로 우클이 나감");
+		Players On Hero(Hero(시메트라), All Teams).ttek_text[2] = Custom String("레이저제모 {0}", Hero Icon String(Hero(윈스턴)));
+		Players On Hero(Hero(시메트라), All Teams).ttek_text[3] = Custom String("스턴 상태를 부여하는 좌클릭 활성화");
 		Players On Hero(Hero(애쉬), All Teams).ttek_text[0] = Custom String("적응완료");
 		Players On Hero(Hero(애쉬), All Teams).ttek_text[1] = Custom String("화상상태여도 이동속도가 감소하지 않음");
 		Players On Hero(Hero(애쉬), All Teams).ttek_text[2] = Custom String("정밀한 저격");
