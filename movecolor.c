@@ -131,6 +131,7 @@ variables
 		78: mauga_effect3
 		79: mauga_effect4
 		80: random_vector
+		81: was_kinged
 		82: Out_side
 		83: aim_vector
 		84: aim_vector_
@@ -179,7 +180,7 @@ subroutines
 	12: QUEEN_COL_CNG
 	13: BATI_TEL_TRIGGER
 	14: TTEK_TRIGGER
-	15: TTEK_TRIGGER_2
+	15: TTEK_KING
 }
 
 rule("초기 세팅 및 게임 설명 HUD (수정)")
@@ -15865,49 +15866,44 @@ rule("[특전, 왕] 5라운드가 되면 특전 텍스트 지정됨 // 여기서
 		Players On Hero(Hero(프레야), All Teams).ttek_text[1] = Custom String("맞은 적들에게 짧은 스턴 부여");
 		Players On Hero(Hero(프레야), All Teams).ttek_text[2] = Custom String("빠른 조준");
 		Players On Hero(Hero(프레야), All Teams).ttek_text[3] = Custom String("조준하는 동안 이동속도 증가");
-		"특전 활성화!"
-		disabled All Players(All Teams).ttek_trigger = True;
-		If(Global.king_triggered == 1);
-			Global.KING.ttek_trigger = True;
-		Else If(Global.king_triggered == 2);
-			Filtered Array(All Players(All Teams), Global.KING != Current Array Element).ttek_trigger = True;
+		If(Global.king_triggered == 2);
+			Filtered Array(All Players(All Teams), Current Array Element.was_kinged != True).ttek_trigger = True;
 	}
 }
 
-rule("[특전] 10라운드가 되면 남은 특전 자동으로 선택됨")
+rule("[특전] 모든 특전 선택됨 (왕)")
 {
 	event
 	{
 		Subroutine;
-		TTEK_TRIGGER_2;
+		TTEK_KING;
 	}
 
 	action
 	{
-		Big Message(Event Player, Custom String("{0} 남은 특전이 자동으로 선택됩니다!", Icon String(Fire)));
-		Destroy HUD Text(Event Player.ttek_effect[0]);
-		Destroy HUD Text(Event Player.ttek_effect[1]);
-		Destroy HUD Text(Event Player.ttek_effect[2]);
-		Destroy HUD Text(Event Player.ttek_effect[3]);
-		Event Player.ttek_effect = Null;
-		Skip If(Event Player.ttek_left_enable == True, 3);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 40, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" {0} '{2}' 선택됨\r\n {1}",
-			Input Binding String(Button(Primary Fire)), Event Player.ttek_text[1], Event Player.ttek_text[0]), Left, 41, Color(Orange),
-			Color(흰색), Color(흰색), Visible To and String, Default Visibility);
-		Event Player.ttek_left_enable = True;
-		Skip If(Event Player.ttek_right_enable == True, 3);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 42, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" {0} '{2}' 선택됨\r\n {1}",
-			Input Binding String(Button(Secondary Fire)), Event Player.ttek_text[3], Event Player.ttek_text[2]), Left, 43, Color(Orange),
-			Color(흰색), Color(흰색), Visible To and String, Default Visibility);
-		Event Player.ttek_right_enable = True;
+		Destroy HUD Text(Global.KING.ttek_effect[0]);
+		Destroy HUD Text(Global.KING.ttek_effect[1]);
+		Destroy HUD Text(Global.KING.ttek_effect[2]);
+		Destroy HUD Text(Global.KING.ttek_effect[3]);
+		Global.KING.ttek_effect = Null;
+		Skip If(Global.KING.ttek_left_enable == True, 3);
+		Global.KING.ttek_left_enable = True;
+		Create HUD Text(Global.KING, Null, Custom String("   "), Null, Left, 40, Color(Green), Color(Green), Color(흰색), None,
+			Default Visibility);
+		Create HUD Text(Global.KING, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" '{2}'\n {1}",
+			Input Binding String(Button(Primary Fire)), Global.KING.ttek_text[1], Global.KING.ttek_text[0]), Left, 41, Color(Orange),
+			Color(흰색), Color(흰색), None, Default Visibility);
+		Skip If(Global.KING.ttek_right_enable == True, 3);
+		Global.KING.ttek_right_enable = True;
+		Create HUD Text(Global.KING, Null, Custom String("   "), Null, Left, 42, Color(Green), Color(Green), Color(흰색), None,
+			Default Visibility);
+		Create HUD Text(Global.KING, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" '{2}'\n {1}",
+			Input Binding String(Button(Secondary Fire)), Global.KING.ttek_text[3], Global.KING.ttek_text[2]), Left, 43, Color(Orange),
+			Color(흰색), Color(흰색), None, Default Visibility);
 	}
 }
 
-rule("[왕] 슬롯 0번 = 왕")
+rule("[왕] Is Game In Porgress 후 랜덤으로 왕 결정됨")
 {
 	event
 	{
@@ -15916,12 +15912,12 @@ rule("[왕] 슬롯 0번 = 왕")
 
 	action
 	{
-		Wait(3, Ignore Condition);
+		Wait Until(Is Game In Progress, 99999);
 		Global.KING = Random Value In Array(All Players(All Teams));
 	}
 }
 
-rule("[왕] 특전 활성화 조건 - 왕 스폰 (왕)")
+rule("[왕] 왕 결정 (첫 스폰)")
 {
 	event
 	{
@@ -15938,13 +15934,14 @@ rule("[왕] 특전 활성화 조건 - 왕 스폰 (왕)")
 	action
 	{
 		Global.king_triggered = 1;
-		Start Rule(TTEK_TRIGGER, Restart Rule);
-		Wait(1, Ignore Condition);
-		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 특전을 즉시 선택하세요!", Icon String(Fire)));
+		Call Subroutine(TTEK_TRIGGER);
+		Call Subroutine(TTEK_KING);
+		Global.KING.was_kinged = True;
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 자동으로 선택됩니다!", Icon String(Fire)));
 	}
 }
 
-rule("[특전] 특전 활성화 조건 - 5라운드 (왕 제외)")
+rule("[특전] 특전 활성화 조건 - 5라운드 (왕이었던 사람 제외)")
 {
 	event
 	{
@@ -15963,78 +15960,6 @@ rule("[특전] 특전 활성화 조건 - 5라운드 (왕 제외)")
 	}
 }
 
-rule("[특전] 특전 활성화 조건 - 5라운드 (왕)")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Global.RoundNumber == 5;
-		Global.KING == Event Player;
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-	}
-
-	action
-	{
-		Start Rule(TTEK_TRIGGER_2, Restart Rule);
-	}
-}
-
-rule("[특전] 특전 활성화 조건 - 10라운드 (왕 제외)")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Global.RoundNumber == 10;
-		Global.KING != Event Player;
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-	}
-
-	action
-	{
-		Start Rule(TTEK_TRIGGER_2, Restart Rule);
-	}
-}
-
-rule("[특전] 특전 활성화 조건 - 10라운드 (왕)")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Global.RoundNumber == 10;
-		Global.KING == Event Player;
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-	}
-
-	action
-	{
-		Big Message(All Players(All Teams), Custom String("{0} 10라운드까지 게임을 끝내지 못한 왕은 사망합니다!", Icon String(Skull)));
-		While(Is Alive(Event Player));
-			Kill(Event Player, Null);
-			Wait(0.250, Ignore Condition);
-	}
-}
-
 rule("[왕] 왕 Text")
 {
 	event
@@ -16048,5 +15973,67 @@ rule("[왕] 왕 Text")
 	{
 		Create HUD Text(Event Player, Null, Null, Custom String("{0} 왕: {1} {2}", Icon String(Fire), Global.KING, Hero Icon String(Hero Of(
 			Global.KING))), Right, 1.004, Color(흰색), Color(흰색), Color(Rose), Visible To and String, Default Visibility);
+	}
+}
+
+rule("[왕] 왕 교체: 죽음")
+{
+	event
+	{
+		Player Died;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Global.KING == Event Player;
+	}
+
+	action
+	{
+		Wait(0.500, Ignore Condition);
+		If(Is Alive(Attacker));
+			Global.KING = Attacker;
+			Big Message(Filtered Array(All Players(All Teams), Current Array Element != Global.KING), Custom String("{0} 왕이 교체됩니다!",
+				Icon String(Fire)));
+		Else;
+			Global.KING = Random Value In Array(Global.LivingPlayers);
+			Big Message(Filtered Array(All Players(All Teams), Current Array Element != Global.KING), Custom String("{0} 랜덤으로 왕이 결정됩니다!",
+				Icon String(Fire)));
+		End;
+		Global.king_triggered = 1;
+		Call Subroutine(TTEK_TRIGGER);
+		Call Subroutine(TTEK_KING);
+		Global.KING.was_kinged = True;
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 자동으로 선택됩니다!", Icon String(Fire)));
+	}
+}
+
+rule("[왕] 왕 교체: 나감")
+{
+	event
+	{
+		Player Left Match;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Event Player == Global.KING;
+	}
+
+	action
+	{
+		Wait(0.500, Ignore Condition);
+		Global.KING = Random Value In Array(Global.LivingPlayers);
+		Big Message(Filtered Array(All Players(All Teams), Current Array Element != Global.KING), Custom String("{0} 랜덤으로 왕이 결정됩니다!",
+			Icon String(Fire)));
+		Global.king_triggered = 1;
+		Global.KING.was_kinged = True;
+		Call Subroutine(TTEK_TRIGGER);
+		Call Subroutine(TTEK_KING);
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 자동으로 선택됩니다!", Icon String(Fire)));
 	}
 }
