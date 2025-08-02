@@ -69,6 +69,8 @@ variables
 		75: junoult_flag
 		76: junotarget
 		77: bati_theta
+		78: KING
+		79: king_triggered
 
 	player:
 		0: p_CurrentMode
@@ -129,7 +131,7 @@ variables
 		78: mauga_effect3
 		79: mauga_effect4
 		80: random_vector
-		81: teleport_trigger
+		81: was_kinged
 		82: Out_side
 		83: aim_vector
 		84: aim_vector_
@@ -176,6 +178,9 @@ subroutines
 	10: Map2
 	11: QUEEN_END_COND
 	12: QUEEN_COL_CNG
+	13: BATI_TEL_TRIGGER
+	14: TTEK_TRIGGER
+	15: TTEK_KING
 }
 
 rule("초기 세팅 및 게임 설명 HUD (수정)")
@@ -219,7 +224,7 @@ rule("초기 세팅 및 게임 설명 HUD (수정)")
 			All Teams), Ability Icon String(Hero(메르시), Button(Ability 1))), Null, Null, Top, 0, Color(흰색), Color(흰색), Color(흰색), String,
 			Default Visibility);
 		Global.HUDR = Last Text ID;
-		Create HUD Text(All Players(All Teams), Custom String("제작 : KISUM / 250712 ver\r"), Custom String(
+		Create HUD Text(All Players(All Teams), Custom String("제작 : KISUM / 250727 ver\r"), Custom String(
 			" originator : THEFOOT\r, 파이리\r\n special thx : Dote6, YaksuStn\r\n server load : {0}\r\n {1} {2}번째 구역", Custom String(
 			"{0} | {1}", Server Load, Server Load Average), Current Map, 1 + Global.ArenaID), Custom String(
 			" the latest code : 69033                              "), Left, -2, Color(Orange), Color(흰색), Color(흰색), String,
@@ -353,58 +358,6 @@ rule("승리 HUD [개별]")
 		Enable Built-In Game Mode Music;
 		Enable Built-In Game Mode Announcer;
 		Declare Player Victory(Global.LivingPlayers);
-	}
-}
-
-rule("승리 HUD [1팀]")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Game Mode != Game Mode(데스매치);
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 1)) != 0;
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 2)) == 0;
-		Is Game In Progress == True;
-		Is Assembling Heroes == False;
-		Is In Setup == False;
-	}
-
-	action
-	{
-		Wait(1.900, Abort When False);
-		Enable Built-In Game Mode Music;
-		Enable Built-In Game Mode Announcer;
-		Declare Team Victory(Team 1);
-	}
-}
-
-rule("승리 HUD [2팀]")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Game Mode != Game Mode(데스매치);
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 1)) == 0;
-		Count Of(Filtered Array(Global.LivingPlayers, Team Of(Current Array Element) == Team 2)) != 0;
-		Is Game In Progress == True;
-		Is Assembling Heroes == False;
-		Is In Setup == False;
-	}
-
-	action
-	{
-		Wait(1.900, Abort When False);
-		Enable Built-In Game Mode Music;
-		Enable Built-In Game Mode Announcer;
-		Declare Team Victory(Team 2);
 	}
 }
 
@@ -3477,6 +3430,651 @@ rule("Timer Runs Out In Tiebreaker")
 	}
 }
 
+rule("[겐지] : 능력 설명 *")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Create HUD Text(Event Player, Custom String("{0}             질주", Ability Icon String(Hero(겐지), Button(Ability 2))), Null,
+			Custom String(" E\r\n 일시적으로 이동속도 증가                                                    "), Left, 8, Color(Green), Color(흰색),
+			Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 7, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0}          질풍참", Ability Icon String(Hero(겐지), Button(Ability 1))), Null,
+			Custom String(" SHIFT\r\n 1. 데스노트가 가장 적게 남은 플레이어에게 순간이동                        \r\n 2. 궁극기로 처치 시 질풍참 쿨타임 초기화 "), Left, 6,
+			Color(Green), Color(흰색), Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 5, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0}             은신", Icon String(Eye)), Null, Custom String(
+			" 패시브\r\n 상태변화 효과를 받지 않고 움직임이 없으면 은신상태가 됨     "), Left, 4, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 3, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 데스블레이드", Ability Icon String(Hero(겐지), Button(Ultimate))), Null, Custom String(
+			" Q\r\n 1. 궁극기에 맞은 적에게 넉백 효과 부여                                                          \r\n 2. 적이 궁극기에 6번 맞으면 즉시 사망"), Left,
+			2, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
+		Set Primary Fire Enabled(Event Player, False);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Right, 2.500, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 데스노트", Icon String(Poison)), Null, Null, Right, 2, Color(Red), Color(흰색), Color(
+			흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Right, 1.500, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+	}
+}
+
+rule("[겐지] : 패시브 - 이펙트")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Create Effect(Filtered Array(All Players(All Teams), Current Array Element != Event Player), Bad Aura, Color(Green), Event Player,
+			1, Visible To Position and Radius);
+		Event Player.Y = Last Created Entity;
+	}
+}
+
+rule("[겐지] : 패시브 - 투명 1 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Is Moving(Event Player) == False;
+		Has Status(Event Player, Hacked) == False;
+		Has Status(Event Player, Burning) == False;
+		Has Status(Event Player, Knocked Down) == False;
+		Has Status(Event Player, Asleep) == False;
+		Has Status(Event Player, Frozen) == False;
+		Has Status(Event Player, Rooted) == False;
+		Has Status(Event Player, Stunned) == False;
+	}
+
+	action
+	{
+		Set Invisible(Event Player, All);
+	}
+}
+
+rule("[겐지] : 패시브 - 투명 2")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Is Alive(Event Player) == True;
+		Is Moving(Event Player) == True;
+	}
+
+	action
+	{
+		Set Invisible(Event Player, None);
+	}
+}
+
+rule("[겐지] : 패시브 - 투명 3 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Is Alive(Event Player) == True;
+		(Has Status(Event Player, Hacked) || Has Status(Event Player, Burning) || Has Status(Event Player, Knocked Down) || Has Status(
+			Event Player, Asleep) || Has Status(Event Player, Frozen) || Has Status(Event Player, Rooted) || Has Status(Event Player,
+			Stunned)) == True;
+	}
+
+	action
+	{
+		Set Invisible(Event Player, None);
+	}
+}
+
+rule("[겐지] : 질풍참 - 발동 by Dote6")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Is Using Ability 1(Players On Hero(Hero(겐지), All Teams)) == True;
+		Is Alive(Event Player) == True;
+		Hero Of(Event Player) != Hero(겐지);
+		Has Spawned(Event Player) == True;
+		Event Player.Z != 1;
+	}
+
+	action
+	{
+		If(Event Player.GD == 1);
+			Wait(0.020, Ignore Condition);
+			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
+		Else If(Event Player.GD == 2);
+			Wait(0.040, Ignore Condition);
+			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
+		Else If(Event Player.GD == 3);
+			Wait(0.060, Ignore Condition);
+			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
+		Else If(Event Player.GD == 4);
+			Wait(0.080, Ignore Condition);
+			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
+		Else If(Event Player.GD == 5);
+			Wait(0.100, Ignore Condition);
+			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
+		Else;
+			Wait(0.120, Ignore Condition);
+			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
+	}
+}
+
+rule("[겐지] : 질풍참 - 순간이동 by Dote6")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Is Using Ability 1(Event Player) == True;
+	}
+
+	action
+	{
+		Global.GD_playerarray = Empty Array;
+		Wait(0.300, Ignore Condition);
+		If(Global.GD_playerarray != Empty Array);
+			Teleport(Event Player, Position Of(Global.GD_playerarray[0]) + Vector(0, 0.600, 0));
+			Wait(0.100, Ignore Condition);
+			Set Facing(Event Player, Vector Towards(Event Player, Global.GD_playerarray[0] + Vector(0, 0.600, 0)), To World);
+	}
+}
+
+rule("[겐지] : 튕겨내기 - 질주")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Is Using Ability 2(Event Player) == True;
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Set Move Speed(Event Player, 300);
+		Wait(1.800, Ignore Condition);
+		Set Move Speed(Event Player, 120);
+	}
+}
+
+rule("[겐지] : 궁극기 - 넉백 by KISUM")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		겐지;
+	}
+
+	condition
+	{
+		Is Using Ultimate(Event Player) == True;
+		Is Using Ability 2(Event Player) == False;
+		Victim.GD > 0;
+	}
+
+	action
+	{
+		Abort If Condition Is False;
+		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 40, To World, Cancel Contrary Motion);
+		Victim.GD = Victim.GD + -1;
+		Small Message(Victim, Custom String("{0} 겐지 : 내 용검 맛이 어떠느냐", Hero Icon String(Hero(겐지))));
+	}
+}
+
+rule("[겐지] : 궁극기 - 횟수 표시 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+		Hero Of(Event Player) != Hero(겐지);
+	}
+
+	action
+	{
+		Create HUD Text(Players On Hero(Hero(겐지), All Teams), Custom String("{0} {1}회 남음", Hero Icon String(Hero Of(Event Player)),
+			Event Player.GD), Null, Null, Right, 3, Color(흰색), Color(흰색), Color(Red), Visible To and String, Default Visibility);
+		Event Player.G_GAGE_H = Last Text ID;
+	}
+}
+
+rule("[겐지] : 궁극기 - 게이지 표시 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Has Spawned(Players On Hero(Hero(겐지), All Teams)) == True;
+	}
+
+	action
+	{
+		Event Player.GD = 6;
+		Create Progress Bar HUD Text(Filtered Array(Event Player, Current Array Element != Players On Hero(Hero(겐지), All Teams)),
+			16.666 * Event Player.GD, Custom String("{1} 겐지의 궁극기에 {0}번 더 공격받으면 즉시 사망", Event Player.GD, Hero Icon String(Hero(겐지))), Top,
+			5, Color(Red), Color(흰색), Visible To Values and Color, Default Visibility);
+		Event Player.G_GAGE = Last Text ID;
+	}
+}
+
+rule("[겐지] : 궁극기 - 사망 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Event Player.GD <= 0;
+	}
+
+	action
+	{
+		Kill(Event Player, Players On Hero(Hero(겐지), All Teams));
+		Small Message(Event Player, Custom String("{0} 겐지 : 내 용검으로 죽은걸 영광스러워해라", Hero Icon String(Hero(겐지))));
+		If(Is Using Ultimate(Players On Hero(Hero(겐지), All Teams)) == True);
+			Set Ability Cooldown(Event Player, Button(Ability 1), 0);
+			Small Message(Players On Hero(Hero(겐지), All Teams), Custom String("질풍참 사용 가능"));
+	}
+}
+
+rule("[겐지] : 궁극기 - 사망시 게이지 삭제 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Is Dead(Players On Hero(Hero(겐지), All Teams)) == True;
+	}
+
+	action
+	{
+		Destroy Progress Bar HUD Text(Event Player.G_GAGE);
+	}
+}
+
+rule("[겐지] : 궁극기 - 퇴장시 게이지 삭제 by KISUM")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Entity Exists(Players On Hero(Hero(겐지), All Teams)) == False;
+	}
+
+	action
+	{
+		Destroy Progress Bar HUD Text(All Players(All Teams).G_GAGE);
+	}
+}
+
+rule("[겐지] : 궁극기 - 부활시 횟수 표시 by KISUM (버그수정)")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Event Player.RV_GAGE == 1;
+		Hero Of(Event Player) != Hero(겐지);
+	}
+
+	action
+	{
+		Event Player.GD = 3;
+		Create HUD Text(Players On Hero(Hero(겐지), All Teams), Custom String("{0} {1}회 남음", Hero Icon String(Hero Of(Event Player)),
+			Event Player.GD), Null, Null, Right, 3, Color(흰색), Color(흰색), Color(Red), Visible To and String, Default Visibility);
+		Event Player.G_GAGE_H = Last Text ID;
+	}
+}
+
+rule("[겐지] : 궁극기 - 부활시 게이지 표시 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Players On Hero(Hero(겐지), All Teams).RV_GAGE == 1;
+	}
+
+	action
+	{
+		Create Progress Bar HUD Text(Filtered Array(Event Player, Current Array Element != Players On Hero(Hero(겐지), All Teams)),
+			16.666 * Event Player.GD, Custom String("{1} 겐지의 궁극기에 {0}번 더 공격받으면 즉시 사망", Event Player.GD, Hero Icon String(Hero(겐지))), Top,
+			5, Color(Red), Color(흰색), Visible To Values and Color, Default Visibility);
+		Event Player.G_GAGE = Last Text ID;
+	}
+}
+
+rule("[겐지] : 궁극기 - 횟수 표시 삭제 1 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Is Alive(Event Player) == False;
+	}
+
+	action
+	{
+		Destroy HUD Text(Event Player.G_GAGE_H);
+	}
+}
+
+rule("[겐지] : 궁극기 - 횟수 표시 삭제 2 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Event Player == Players On Hero(Hero(겐지), All Teams);
+	}
+
+	action
+	{
+		Destroy HUD Text(Event Player.G_GAGE_H);
+	}
+}
+
+rule("[겐지] : 바티스트 불사 장치 사망 X 해결 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		바티스트;
+	}
+
+	condition
+	{
+		Is Alive(Event Player) == True;
+		Event Player.GD <= 0;
+	}
+
+	action
+	{
+		Wait(0.250, Ignore Condition);
+		Abort If Condition Is False;
+		Event Player.GD = 1;
+	}
+}
+
+rule("[라인하르트] : 능력설명 + 기본 방벽 크기 *")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		라인하르트;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Create HUD Text(Event Player, Custom String("{0}           돌진", Ability Icon String(Hero(라인하르트), Button(Ability 1))), Null,
+			Custom String(" SHIFT\r\n 처음에 느리던 돌진 속도가 급속도로 빨라짐"), Left, 10, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 9, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0}     대지분쇄", Ability Icon String(Hero(라인하르트), Button(Ultimate))), Null,
+			Custom String(" Q\r\n 전장의 모든 적들을 넉다운시킴                    "), Left, 8, Color(Green), Color(흰색), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 7, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0}           철갑", Hero Icon String(Hero(라인하르트))), Null, Custom String(
+			" 패시브 2\r\n 공격을 받을 때마다 궁극기 게이지 일정량 증가          "), Left, 4, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 3, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 커지는 방벽", Ability Icon String(Hero(라인하르트), Button(Secondary Fire))), Null,
+			Custom String(" 패시브 1\r\n 라운드가 거듭될수록 방벽 크기 증가               "), Left, 2, Color(Green), Color(흰색), Color(흰색), None,
+			Visible Never);
+		Start Scaling Barriers(Event Player, 0.200, True);
+	}
+}
+
+rule("[라인하르트] : 패시브 - 방벽 크기 증가 B20 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		라인하르트;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+		Match Time >= 118;
+		Global.RoundNumber <= 20;
+	}
+
+	action
+	{
+		Stop Scaling Barriers(Event Player);
+		Start Scaling Barriers(Event Player, Global.RoundNumber * 0.150, True);
+		Small Message(Event Player, Custom String("{0} 라인하르트 : 방벽이 더 커지겠군.", Hero Icon String(Hero(라인하르트))));
+	}
+}
+
+rule("[라인하르트] : 패시브 - 방벽 크기 증가 A20 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		라인하르트;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+		Global.RoundNumber > 20;
+	}
+
+	action
+	{
+		Stop Scaling Barriers(Event Player);
+		Start Scaling Barriers(Event Player, 3, True);
+		Small Message(Event Player, Custom String("{0} 라인하르트 : 방벽이 더 커지겠군.", Hero Icon String(Hero(라인하르트))));
+	}
+}
+
+rule("[라인하르트] : 철갑 by KISUM with Dote6")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Hero Of(Victim) == Hero(라인하르트);
+		Attacker.rein_lock != 1;
+	}
+
+	action
+	{
+		Abort If Condition Is False;
+		Attacker.rein_lock = 1;
+		Set Ultimate Charge(Victim, Ultimate Charge Percent(Victim) + 2);
+		Wait(0.200, Ignore Condition);
+		Attacker.rein_lock = 0;
+	}
+}
+
+rule("[라인하르트] : 돌진 - 1")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		라인하르트;
+	}
+
+	condition
+	{
+		Is Using Ability 1(Event Player) == True;
+	}
+
+	action
+	{
+		Set Move Speed(Event Player, 1);
+		Wait(1.500, Ignore Condition);
+		Abort If Condition Is False;
+		Set Move Speed(Event Player, 500);
+		Wait(3, Ignore Condition);
+		Set Move Speed(Event Player, 120);
+	}
+}
+
+rule("[라인하르트] : 돌진 - 2")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		라인하르트;
+	}
+
+	condition
+	{
+		Is Using Ability 1(Event Player) == False;
+	}
+
+	action
+	{
+		Set Move Speed(Event Player, 120);
+	}
+}
+
+rule("[라인하르트] : 대지분쇄 - 광역 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		라인하르트;
+	}
+
+	condition
+	{
+		Is Using Ultimate(Event Player) == True;
+	}
+
+	action
+	{
+		Big Message(All Players(All Teams), Custom String("{0} 라인하르트 : 다 누워라!!!!!!", Hero Icon String(Hero(라인하르트))));
+		Set Status(Filtered Array(All Players(All Teams), Current Array Element != Event Player), Event Player, Knocked Down, 2.500);
+	}
+}
+
 rule("[리퍼] : 능력 설명 *")
 {
 	event
@@ -3696,6 +4294,282 @@ rule("[리퍼] : 무중력 망령화 - 공중부양")
 	}
 }
 
+rule("[메이] : 능력 설명 *")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		메이;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Create Progress Bar HUD Text(Players On Hero(Hero(메이), All Teams), 0.250 * Event Player.MD, Custom String("{0}/400",
+			Event Player.MD), Left, 7, Color(Green), Color(흰색), Visible To Values and Color, Visible Never);
+		Create HUD Text(Event Player, Custom String("{0}   스프레이", Ability Icon String(Hero(메이), Button(Primary Fire))), Null,
+			Custom String(" 좌클릭 (딜을 250회 넣을 때까지 사용 가능/특전시 최대 400회)\r\n 스프레이를 뿌려 적을 아주 짧게 빙결시킬 수 있음"), Left, 6, Color(Green), Color(흰색),
+			Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 5, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 다같이 얼음", Ability Icon String(Hero(메이), Button(Ability 1))), Null, Custom String(
+			" SHIFT\r\n 좁은 범위의 주변 적들에게 2.5초간 빙결상태 부여                    "), Left, 4, Color(Green), Color(흰색), Color(흰색), None,
+			Visible Never);
+		Create Effect(Event Player, Ring, Color(Blue), Event Player, 3.300, Visible To Position and Radius);
+		Event Player.SA = Last Created Entity;
+		Event Player.MD = 250;
+	}
+}
+
+rule("[메이] 좌클릭 - 스프레이 by KISUM")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		메이;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+		Is Firing Primary(Event Player) == True;
+		Event Player.MD > 0;
+	}
+
+	action
+	{
+		Event Player.MD = Event Player.MD + -1;
+		Set Status(Victim, Null, Frozen, 0.020);
+	}
+}
+
+rule("[메이] 스프레이 비허용 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		메이;
+	}
+
+	condition
+	{
+		Event Player.MD <= 0;
+	}
+
+	action
+	{
+		Set Primary Fire Enabled(Event Player, False);
+	}
+}
+
+rule("[메이] : 다같이 얼음")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		메이;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+		Is Using Ability 1(Event Player) == True;
+	}
+
+	action
+	{
+		Event Player.M = Players Within Radius(Event Player, 3.300, Opposite Team Of(Team Of(Event Player)), Surfaces);
+		Event Player.M = Filtered Array(Event Player.M, Current Array Element != Event Player);
+		Damage(Filtered Array(Event Player.M, Current Array Element != Event Player), Event Player, 100);
+		Play Effect(All Players(All Teams), Ring Explosion, Color(Sky Blue), Event Player, 3);
+		Play Effect(All Players(All Teams), Ring Explosion, Color(Sky Blue), Event Player, 5);
+		Set Status(Event Player.M, Event Player, Frozen, 2.500);
+		Small Message(Event Player.M, Custom String("{0} 메이 : 손이 시려워, 꽁!", Hero Icon String(Hero(메이))));
+	}
+}
+
+rule("[메이] : 죽으면 이펙트 삭제 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		메이;
+	}
+
+	condition
+	{
+		Is Dead(Event Player) == True;
+	}
+
+	action
+	{
+		Destroy Effect(Event Player.SA);
+	}
+}
+
+rule("[바스티온] : 능력 설명 *")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		바스티온;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+	}
+
+	action
+	{
+		Create Progress Bar HUD Text(Players On Hero(Hero(바스티온), All Teams), 10 * Event Player.BAS1, Custom String("{0}/10",
+			Event Player.BAS1), Left, 7, Color(Green), Color(흰색), Visible To Values and Color, Visible Never);
+		Create HUD Text(Event Player, Custom String("{0}  급속 전환", Ability Icon String(Hero(바스티온), Button(Ability 1))), Null, Custom String(
+			" F (상호작용키, 경계 모드일 때 사용 가능, 최대 10번 사용 가능)\r\n 바라보고 있는 방향으로 0.2초간 가속하면서 즉시 수색 모드로 전환됨"), Left, 6, Color(Green), Color(흰색),
+			Color(흰색), None, Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 5, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 넉백", Ability Icon String(Hero(바스티온), Button(Primary Fire))), Null, Custom String(
+			" 좌클릭\r\n 공격에 맞은 적에게 약간의 넉백효과 부여                           "), Left, 3, Color(Green), Color(흰색), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 2.500, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 포격", Ability Icon String(Hero(바스티온), Button(Primary Fire))), Null, Custom String(
+			" Q\r\n 1. 포격에 맞은 적에게 보다 큰 넉백효과 부여                            \n 2. 포격에 맞은 적에게 1초간 스턴상태 부여"), Left, 2, Color(Green), Color(흰색),
+			Color(흰색), None, Visible Never);
+		Event Player.BAS1 = 10;
+	}
+}
+
+rule("[바스티온] : 기본공격 - 넉백")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		바스티온;
+	}
+
+	condition
+	{
+		Is Firing Primary(Players On Hero(Hero(바스티온), All Teams)) == True;
+	}
+
+	action
+	{
+		Abort If Condition Is False;
+		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 9, To World, Cancel Contrary Motion);
+	}
+}
+
+rule("[바스티온] : 궁극기 - 넉백")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		바스티온;
+	}
+
+	condition
+	{
+		Is Using Ultimate(Players On Hero(Hero(바스티온), All Teams)) == True;
+	}
+
+	action
+	{
+		Abort If Condition Is False;
+		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 40, To World, Cancel Contrary Motion);
+		Set Status(Victim, Null, Stunned, 1);
+	}
+}
+
+rule("[바스티온] : 급속 전환 1 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		바스티온;
+	}
+
+	condition
+	{
+		Is Alive(Event Player) == True;
+		Is Button Held(Event Player, Button(Interact)) == True;
+		Has Status(Event Player, Hacked) == False;
+		Has Status(Event Player, Rooted) == False;
+		Event Player.ALT == 1;
+		Event Player.BAS1 > 0;
+		Has Status(Event Player, Hacked) == False;
+		Has Status(Event Player, Knocked Down) == False;
+		Has Status(Event Player, Asleep) == False;
+		Has Status(Event Player, Frozen) == False;
+		Has Status(Event Player, Rooted) == False;
+		Has Status(Event Player, Stunned) == False;
+	}
+
+	action
+	{
+		Apply Impulse(Event Player, Facing Direction Of(Event Player), 50, To World, Cancel Contrary Motion);
+		Event Player.BAS1 = Event Player.BAS1 + -1;
+		Press Button(Event Player, Button(Ability 1));
+		Event Player.ALT = 0;
+	}
+}
+
+rule("[바스티온] : 급속 전환 2 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		바스티온;
+	}
+
+	condition
+	{
+		Is In Alternate Form(Event Player) == True;
+	}
+
+	action
+	{
+		Wait(1, Ignore Condition);
+		Event Player.ALT = 1;
+	}
+}
+
+rule("[바스티온] : 급속 전환 3 by KISUM")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		바스티온;
+	}
+
+	condition
+	{
+		Is In Alternate Form(Event Player) == False;
+	}
+
+	action
+	{
+		Event Player.ALT = 0;
+	}
+}
+
 rule("[젠야타] : 능력 설명 *")
 {
 	event
@@ -3887,13 +4761,13 @@ rule("[젠야타] : 공격 - 수련 게이지 by KISUM")
 	}
 }
 
-rule("[라인하르트] : 능력설명 + 기본 방벽 크기 *")
+rule("[토르비욘] : 능력 설명 *")
 {
 	event
 	{
 		Ongoing - Each Player;
 		All;
-		라인하르트;
+		토르비욘;
 	}
 
 	condition
@@ -3903,163 +4777,243 @@ rule("[라인하르트] : 능력설명 + 기본 방벽 크기 *")
 
 	action
 	{
-		Create HUD Text(Event Player, Custom String("{0}           돌진", Ability Icon String(Hero(라인하르트), Button(Ability 1))), Null,
-			Custom String(" SHIFT\r\n 처음에 느리던 돌진 속도가 급속도로 빨라짐"), Left, 10, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 9, Color(Green), Color(Green), Color(흰색), None,
+		Set Ammo(Event Player, 0, 3);
+		Set Max Ammo(Event Player, 0, 3);
+		Create HUD Text(Event Player, Custom String("{0}       넉백", Icon String(Dizzy)), Null, Custom String(
+			" 좌클릭 (망치)\r\n 망치에 맞은 적에게 넉백효과 부여                         "), Left, 9, Color(Green), Color(흰색), Color(흰색), None,
 			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0}     대지분쇄", Ability Icon String(Hero(라인하르트), Button(Ultimate))), Null,
-			Custom String(" Q\r\n 전장의 모든 적들을 넉다운시킴                    "), Left, 8, Color(Green), Color(흰색), Color(흰색), None,
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 8, Color(Green), Color(Green), Color(흰색), None,
 			Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 7, Color(Green), Color(Green), Color(흰색), None,
+		Create HUD Text(Event Player, Custom String("{0}    스턴", Ability Icon String(Hero(토르비욘), Button(Secondary Fire))), Null,
+			Custom String(" 좌클릭 (총알)\r\n 총알에 맞은 적에게 스턴상태 부여                         "), Left, 7, Color(Green), Color(흰색), Color(흰색), None,
 			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0}           철갑", Hero Icon String(Hero(라인하르트))), Null, Custom String(
-			" 패시브 2\r\n 공격을 받을 때마다 궁극기 게이지 일정량 증가          "), Left, 4, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 3, Color(Green), Color(Green), Color(흰색), None,
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 6, Color(Green), Color(Green), Color(흰색), None,
 			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 커지는 방벽", Ability Icon String(Hero(라인하르트), Button(Secondary Fire))), Null,
-			Custom String(" 패시브 1\r\n 라운드가 거듭될수록 방벽 크기 증가               "), Left, 2, Color(Green), Color(흰색), Color(흰색), None,
+		Create HUD Text(Event Player, Custom String("{0} 화염방사기", Icon String(Fire)), Null, Custom String(
+			" E (스킬 사용 시간 동안 좌클릭 불가)\n 맞은 적에게 넉백과 시야방해, 5초간 화상상태 부여          "), Left, 5, Color(Green), Color(흰색), Color(흰색), None,
 			Visible Never);
-		Start Scaling Barriers(Event Player, 0.200, True);
+		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 4, Color(Green), Color(Green), Color(흰색), None,
+			Visible Never);
+		Create HUD Text(Event Player, Custom String("{0} 짧은다리의 역습", Hero Icon String(Hero(토르비욘))), Null, Custom String(
+			" 패시브\r\n 1. 다른 영웅들보다 이동속도가 느림                    \r\n 2. 주변의 적들에게 화상상태 부여"), Left, 3, Color(Green), Color(흰색), Color(흰색),
+			None, Visible Never);
 	}
 }
 
-rule("[라인하르트] : 패시브 - 방벽 크기 증가 B20 by KISUM")
+rule("[토르비욘] : 패시브 - 이펙트")
 {
 	event
 	{
 		Ongoing - Each Player;
 		All;
-		라인하르트;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-		Match Time >= 118;
-		Global.RoundNumber <= 20;
-	}
-
-	action
-	{
-		Stop Scaling Barriers(Event Player);
-		Start Scaling Barriers(Event Player, Global.RoundNumber * 0.150, True);
-		Small Message(Event Player, Custom String("{0} 라인하르트 : 방벽이 더 커지겠군.", Hero Icon String(Hero(라인하르트))));
-	}
-}
-
-rule("[라인하르트] : 패시브 - 방벽 크기 증가 A20 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		라인하르트;
+		토르비욘;
 	}
 
 	condition
 	{
 		Has Spawned(Event Player) == True;
 		Is Alive(Event Player) == True;
-		Global.RoundNumber > 20;
 	}
 
 	action
 	{
-		Stop Scaling Barriers(Event Player);
-		Start Scaling Barriers(Event Player, 3, True);
-		Small Message(Event Player, Custom String("{0} 라인하르트 : 방벽이 더 커지겠군.", Hero Icon String(Hero(라인하르트))));
+		Create Effect(Filtered Array(All Players(All Teams), Current Array Element != Event Player), Cloud, Color(Red), Position Of(
+			Event Player), 2.200, Visible To Position and Radius);
 	}
 }
 
-rule("[라인하르트] : 철갑 by KISUM with Dote6")
+rule("[토르비욘] : 과부하 - 화상, 상시 발동")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		토르비욘;
+	}
+
+	condition
+	{
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+	}
+
+	action
+	{
+		disabled Start Holding Button(Event Player, Button(Ability 2));
+		Event Player.Q = Players Within Radius(Event Player, 2.200, Opposite Team Of(Team Of(Event Player)), Surfaces);
+		Event Player.Q = Filtered Array(Event Player.Q, Current Array Element != Event Player);
+		Set Status(Event Player.Q, Event Player, Burning, 1.500);
+		Wait(0.016, Ignore Condition);
+		Loop;
+	}
+}
+
+rule("[토르비욘] : 총알공격 - 스턴 by KISUM")
 {
 	event
 	{
 		Player Dealt Damage;
 		All;
-		All;
+		토르비욘;
 	}
 
 	condition
 	{
-		Hero Of(Victim) == Hero(라인하르트);
-		Attacker.rein_lock != 1;
+		Is In Alternate Form(Event Player) == False;
+		Is Using Ability 2(Event Player) == False;
 	}
 
 	action
 	{
 		Abort If Condition Is False;
-		Attacker.rein_lock = 1;
-		Set Ultimate Charge(Victim, Ultimate Charge Percent(Victim) + 2);
-		Wait(0.200, Ignore Condition);
-		Attacker.rein_lock = 0;
+		Set Status(Victim, Null, Stunned, 0.333);
+		Small Message(Victim, Custom String("{0} 토르비욘 : 멈춰!", Hero Icon String(Hero(토르비욘))));
 	}
 }
 
-rule("[라인하르트] : 돌진 - 1")
+rule("[토르비욘] : 망치공격 - 넉백 by KISUM")
 {
 	event
 	{
-		Ongoing - Each Player;
+		Player Dealt Damage;
 		All;
-		라인하르트;
+		토르비욘;
 	}
 
 	condition
 	{
-		Is Using Ability 1(Event Player) == True;
+		Is In Alternate Form(Event Player) == True;
+		Is Using Ability 2(Event Player) == False;
 	}
 
 	action
 	{
-		Set Move Speed(Event Player, 1);
-		Wait(1.500, Ignore Condition);
 		Abort If Condition Is False;
-		Set Move Speed(Event Player, 500);
-		Wait(3, Ignore Condition);
-		Set Move Speed(Event Player, 120);
+		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 20, To World, Cancel Contrary Motion);
+		Small Message(Victim, Custom String("{0} 토르비욘 : 저리가!", Hero Icon String(Hero(토르비욘))));
 	}
 }
 
-rule("[라인하르트] : 돌진 - 2")
+rule("[토르비욘] : 과부하 사용시 좌클릭 비활성화 by Dote6")
 {
 	event
 	{
 		Ongoing - Each Player;
 		All;
-		라인하르트;
+		토르비욘;
 	}
 
 	condition
 	{
-		Is Using Ability 1(Event Player) == False;
+		Is Using Ability 2(Event Player) == True;
 	}
 
 	action
 	{
-		Set Move Speed(Event Player, 120);
+		Disallow Button(Event Player, Button(Primary Fire));
 	}
 }
 
-rule("[라인하르트] : 대지분쇄 - 광역 by KISUM")
+rule("[토르비욘] : 과부하 미사용시 좌클릭 활성화 by Dote6")
 {
 	event
 	{
 		Ongoing - Each Player;
 		All;
-		라인하르트;
+		토르비욘;
 	}
 
 	condition
 	{
-		Is Using Ultimate(Event Player) == True;
+		Is Using Ability 2(Event Player) == False;
 	}
 
 	action
 	{
-		Big Message(All Players(All Teams), Custom String("{0} 라인하르트 : 다 누워라!!!!!!", Hero Icon String(Hero(라인하르트))));
-		Set Status(Filtered Array(All Players(All Teams), Current Array Element != Event Player), Event Player, Knocked Down, 2.500);
+		Allow Button(Event Player, Button(Primary Fire));
+		All Players(All Teams).TOR_FIRED = 0;
+	}
+}
+
+rule("[토르비욘] : 화염방사기 발동 by Dote6")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		토르비욘;
+	}
+
+	condition
+	{
+		Is Using Ability 2(Event Player) == True;
+		Has Status(Event Player, Hacked) == False;
+		Has Status(Event Player, Knocked Down) == False;
+		Has Status(Event Player, Asleep) == False;
+		Has Status(Event Player, Frozen) == False;
+		Has Status(Event Player, Stunned) == False;
+	}
+
+	action
+	{
+		투사체 생성(구형 투사체, Event Player, Eye Position(Event Player) + Vector(0, 1.500, 0), Direction From Angles(
+			Horizontal Angle From Direction(Facing Direction Of(Event Player)) + Random Real(-15, 15), Vertical Angle From Direction(
+			Facing Direction Of(Event Player)) + Random Real(-5, 5)), To World, Damage, All Teams, 1, 1, 2, Bad Explosion, Explosion Sound,
+			0.050, 50, 1, 5, 0, Random Real(25, 50));
+		Wait(0.050, Ignore Condition);
+		Loop If Condition Is True;
+	}
+}
+
+rule("[토르비욘] : 화염방사기 화상상태 by Dote6")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		토르비욘;
+	}
+
+	condition
+	{
+		Is Using Ability 2(Event Player) == True;
+	}
+
+	action
+	{
+		Set Status(Victim, Null, Burning, 5);
+	}
+}
+
+rule("[토르비욘] : 화염방사기 시야방해 by Dote6")
+{
+	event
+	{
+		Player Dealt Damage;
+		All;
+		토르비욘;
+	}
+
+	condition
+	{
+		Is Using Ability 2(Event Player) == True;
+		Victim.TOR_FIRED != 1;
+	}
+
+	action
+	{
+		Victim.TOR_FIRED = 1;
+		Create Effect(All Players(All Teams), Sphere, Color(Red), Eye Position(Victim), 0.500, Visible To Position and Radius);
+		Victim.TOR_EFFECT1 = Last Created Entity;
+		Create Effect(All Players(All Teams), Sphere, Color(Red), Eye Position(Victim), 0.500, Visible To Position and Radius);
+		Victim.TOR_EFFECT2 = Last Created Entity;
+		Create Effect(All Players(All Teams), Sphere, Color(Red), Eye Position(Victim), 0.500, Visible To Position and Radius);
+		Victim.TOR_EFFECT3 = Last Created Entity;
+		Wait(5, Ignore Condition);
+		Wait Until(Victim.TOR_FIRED == 0, 99999);
+		Destroy Effect(Victim.TOR_EFFECT1);
+		Destroy Effect(Victim.TOR_EFFECT2);
+		Destroy Effect(Victim.TOR_EFFECT3);
 	}
 }
 
@@ -4592,1007 +5546,6 @@ rule("[한조] : 용이여, 적들을 삼켜라 - 번개 이펙트 삭제")
 		Wait(0.500, Ignore Condition);
 		Global.HUDS = Custom String("gus1rms1");
 		Wait(0.500, Ignore Condition);
-	}
-}
-
-rule("[메이] : 능력 설명 *")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		메이;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-	}
-
-	action
-	{
-		Create Progress Bar HUD Text(Players On Hero(Hero(메이), All Teams), 0.250 * Event Player.MD, Custom String("{0}/400",
-			Event Player.MD), Left, 7, Color(Green), Color(흰색), Visible To Values and Color, Visible Never);
-		Create HUD Text(Event Player, Custom String("{0}   스프레이", Ability Icon String(Hero(메이), Button(Primary Fire))), Null,
-			Custom String(" 좌클릭 (딜을 250회 넣을 때까지 사용 가능/특전시 최대 400회)\r\n 스프레이를 뿌려 적을 아주 짧게 빙결시킬 수 있음"), Left, 6, Color(Green), Color(흰색),
-			Color(흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 5, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 다같이 얼음", Ability Icon String(Hero(메이), Button(Ability 1))), Null, Custom String(
-			" SHIFT\r\n 좁은 범위의 주변 적들에게 2.5초간 빙결상태 부여                    "), Left, 4, Color(Green), Color(흰색), Color(흰색), None,
-			Visible Never);
-		Create Effect(Event Player, Ring, Color(Blue), Event Player, 3.300, Visible To Position and Radius);
-		Event Player.SA = Last Created Entity;
-		Event Player.MD = 250;
-	}
-}
-
-rule("[메이] 좌클릭 - 스프레이 by KISUM")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		메이;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-		Is Firing Primary(Event Player) == True;
-		Event Player.MD > 0;
-	}
-
-	action
-	{
-		Event Player.MD = Event Player.MD + -1;
-		Set Status(Victim, Null, Frozen, 0.020);
-	}
-}
-
-rule("[메이] 스프레이 비허용 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		메이;
-	}
-
-	condition
-	{
-		Event Player.MD <= 0;
-	}
-
-	action
-	{
-		Set Primary Fire Enabled(Event Player, False);
-	}
-}
-
-rule("[메이] : 다같이 얼음")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		메이;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-		Is Using Ability 1(Event Player) == True;
-	}
-
-	action
-	{
-		Event Player.M = Players Within Radius(Event Player, 3.300, Opposite Team Of(Team Of(Event Player)), Surfaces);
-		Event Player.M = Filtered Array(Event Player.M, Current Array Element != Event Player);
-		Damage(Filtered Array(Event Player.M, Current Array Element != Event Player), Event Player, 100);
-		Play Effect(All Players(All Teams), Ring Explosion, Color(Sky Blue), Event Player, 3);
-		Play Effect(All Players(All Teams), Ring Explosion, Color(Sky Blue), Event Player, 5);
-		Set Status(Event Player.M, Event Player, Frozen, 2.500);
-		Small Message(Event Player.M, Custom String("{0} 메이 : 손이 시려워, 꽁!", Hero Icon String(Hero(메이))));
-	}
-}
-
-rule("[메이] : 죽으면 이펙트 삭제 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		메이;
-	}
-
-	condition
-	{
-		Is Dead(Event Player) == True;
-	}
-
-	action
-	{
-		Destroy Effect(Event Player.SA);
-	}
-}
-
-rule("[바스티온] : 능력 설명 *")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		바스티온;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-	}
-
-	action
-	{
-		Create Progress Bar HUD Text(Players On Hero(Hero(바스티온), All Teams), 10 * Event Player.BAS1, Custom String("{0}/10",
-			Event Player.BAS1), Left, 7, Color(Green), Color(흰색), Visible To Values and Color, Visible Never);
-		Create HUD Text(Event Player, Custom String("{0}  급속 전환", Ability Icon String(Hero(바스티온), Button(Ability 1))), Null, Custom String(
-			" F (상호작용키, 경계 모드일 때 사용 가능, 최대 10번 사용 가능)\r\n 바라보고 있는 방향으로 0.2초간 가속하면서 즉시 수색 모드로 전환됨"), Left, 6, Color(Green), Color(흰색),
-			Color(흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 5, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 넉백", Ability Icon String(Hero(바스티온), Button(Primary Fire))), Null, Custom String(
-			" 좌클릭\r\n 공격에 맞은 적에게 약간의 넉백효과 부여                           "), Left, 3, Color(Green), Color(흰색), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 2.500, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 포격", Ability Icon String(Hero(바스티온), Button(Primary Fire))), Null, Custom String(
-			" Q\r\n 1. 포격에 맞은 적에게 보다 큰 넉백효과 부여                            \n 2. 포격에 맞은 적에게 1초간 스턴상태 부여"), Left, 2, Color(Green), Color(흰색),
-			Color(흰색), None, Visible Never);
-		Event Player.BAS1 = 10;
-	}
-}
-
-rule("[바스티온] : 기본공격 - 넉백")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		바스티온;
-	}
-
-	condition
-	{
-		Is Firing Primary(Players On Hero(Hero(바스티온), All Teams)) == True;
-	}
-
-	action
-	{
-		Abort If Condition Is False;
-		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 9, To World, Cancel Contrary Motion);
-	}
-}
-
-rule("[바스티온] : 궁극기 - 넉백")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		바스티온;
-	}
-
-	condition
-	{
-		Is Using Ultimate(Players On Hero(Hero(바스티온), All Teams)) == True;
-	}
-
-	action
-	{
-		Abort If Condition Is False;
-		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 40, To World, Cancel Contrary Motion);
-		Set Status(Victim, Null, Stunned, 1);
-	}
-}
-
-rule("[바스티온] : 급속 전환 1 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		바스티온;
-	}
-
-	condition
-	{
-		Is Alive(Event Player) == True;
-		Is Button Held(Event Player, Button(Interact)) == True;
-		Has Status(Event Player, Hacked) == False;
-		Has Status(Event Player, Rooted) == False;
-		Event Player.ALT == 1;
-		Event Player.BAS1 > 0;
-		Has Status(Event Player, Hacked) == False;
-		Has Status(Event Player, Knocked Down) == False;
-		Has Status(Event Player, Asleep) == False;
-		Has Status(Event Player, Frozen) == False;
-		Has Status(Event Player, Rooted) == False;
-		Has Status(Event Player, Stunned) == False;
-	}
-
-	action
-	{
-		Apply Impulse(Event Player, Facing Direction Of(Event Player), 50, To World, Cancel Contrary Motion);
-		Event Player.BAS1 = Event Player.BAS1 + -1;
-		Press Button(Event Player, Button(Ability 1));
-		Event Player.ALT = 0;
-	}
-}
-
-rule("[바스티온] : 급속 전환 2 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		바스티온;
-	}
-
-	condition
-	{
-		Is In Alternate Form(Event Player) == True;
-	}
-
-	action
-	{
-		Wait(1, Ignore Condition);
-		Event Player.ALT = 1;
-	}
-}
-
-rule("[바스티온] : 급속 전환 3 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		바스티온;
-	}
-
-	condition
-	{
-		Is In Alternate Form(Event Player) == False;
-	}
-
-	action
-	{
-		Event Player.ALT = 0;
-	}
-}
-
-rule("[토르비욘] : 능력 설명 *")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-	}
-
-	action
-	{
-		Set Ammo(Event Player, 0, 3);
-		Set Max Ammo(Event Player, 0, 3);
-		Create HUD Text(Event Player, Custom String("{0}       넉백", Icon String(Dizzy)), Null, Custom String(
-			" 좌클릭 (망치)\r\n 망치에 맞은 적에게 넉백효과 부여                         "), Left, 9, Color(Green), Color(흰색), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 8, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0}    스턴", Ability Icon String(Hero(토르비욘), Button(Secondary Fire))), Null,
-			Custom String(" 좌클릭 (총알)\r\n 총알에 맞은 적에게 스턴상태 부여                         "), Left, 7, Color(Green), Color(흰색), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 6, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 화염방사기", Icon String(Fire)), Null, Custom String(
-			" E (스킬 사용 시간 동안 좌클릭 불가)\n 맞은 적에게 넉백과 시야방해, 5초간 화상상태 부여          "), Left, 5, Color(Green), Color(흰색), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 4, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 짧은다리의 역습", Hero Icon String(Hero(토르비욘))), Null, Custom String(
-			" 패시브\r\n 1. 다른 영웅들보다 이동속도가 느림                    \r\n 2. 주변의 적들에게 화상상태 부여"), Left, 3, Color(Green), Color(흰색), Color(흰색),
-			None, Visible Never);
-	}
-}
-
-rule("[토르비욘] : 패시브 - 이펙트")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-	}
-
-	action
-	{
-		Create Effect(Filtered Array(All Players(All Teams), Current Array Element != Event Player), Cloud, Color(Red), Position Of(
-			Event Player), 2.200, Visible To Position and Radius);
-	}
-}
-
-rule("[토르비욘] : 과부하 - 화상, 상시 발동")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-	}
-
-	action
-	{
-		disabled Start Holding Button(Event Player, Button(Ability 2));
-		Event Player.Q = Players Within Radius(Event Player, 2.200, Opposite Team Of(Team Of(Event Player)), Surfaces);
-		Event Player.Q = Filtered Array(Event Player.Q, Current Array Element != Event Player);
-		Set Status(Event Player.Q, Event Player, Burning, 1.500);
-		Wait(0.016, Ignore Condition);
-		Loop;
-	}
-}
-
-rule("[토르비욘] : 총알공격 - 스턴 by KISUM")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Is In Alternate Form(Event Player) == False;
-		Is Using Ability 2(Event Player) == False;
-	}
-
-	action
-	{
-		Abort If Condition Is False;
-		Set Status(Victim, Null, Stunned, 0.333);
-		Small Message(Victim, Custom String("{0} 토르비욘 : 멈춰!", Hero Icon String(Hero(토르비욘))));
-	}
-}
-
-rule("[토르비욘] : 망치공격 - 넉백 by KISUM")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Is In Alternate Form(Event Player) == True;
-		Is Using Ability 2(Event Player) == False;
-	}
-
-	action
-	{
-		Abort If Condition Is False;
-		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 20, To World, Cancel Contrary Motion);
-		Small Message(Victim, Custom String("{0} 토르비욘 : 저리가!", Hero Icon String(Hero(토르비욘))));
-	}
-}
-
-rule("[토르비욘] : 과부하 사용시 좌클릭 비활성화 by Dote6")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Is Using Ability 2(Event Player) == True;
-	}
-
-	action
-	{
-		Disallow Button(Event Player, Button(Primary Fire));
-	}
-}
-
-rule("[토르비욘] : 과부하 미사용시 좌클릭 활성화 by Dote6")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Is Using Ability 2(Event Player) == False;
-	}
-
-	action
-	{
-		Allow Button(Event Player, Button(Primary Fire));
-		All Players(All Teams).TOR_FIRED = 0;
-	}
-}
-
-rule("[토르비욘] : 화염방사기 발동 by Dote6")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Is Using Ability 2(Event Player) == True;
-		Has Status(Event Player, Hacked) == False;
-		Has Status(Event Player, Knocked Down) == False;
-		Has Status(Event Player, Asleep) == False;
-		Has Status(Event Player, Frozen) == False;
-		Has Status(Event Player, Stunned) == False;
-	}
-
-	action
-	{
-		투사체 생성(구형 투사체, Event Player, Eye Position(Event Player) + Vector(0, 1.500, 0), Direction From Angles(
-			Horizontal Angle From Direction(Facing Direction Of(Event Player)) + Random Real(-15, 15), Vertical Angle From Direction(
-			Facing Direction Of(Event Player)) + Random Real(-5, 5)), To World, Damage, All Teams, 1, 1, 2, Bad Explosion, Explosion Sound,
-			0.050, 50, 1, 5, 0, Random Real(25, 50));
-		Wait(0.050, Ignore Condition);
-		Loop If Condition Is True;
-	}
-}
-
-rule("[토르비욘] : 화염방사기 화상상태 by Dote6")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Is Using Ability 2(Event Player) == True;
-	}
-
-	action
-	{
-		Set Status(Victim, Null, Burning, 5);
-	}
-}
-
-rule("[토르비욘] : 화염방사기 시야방해 by Dote6")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		토르비욘;
-	}
-
-	condition
-	{
-		Is Using Ability 2(Event Player) == True;
-		Victim.TOR_FIRED != 1;
-	}
-
-	action
-	{
-		Victim.TOR_FIRED = 1;
-		Create Effect(All Players(All Teams), Sphere, Color(Red), Eye Position(Victim), 0.500, Visible To Position and Radius);
-		Victim.TOR_EFFECT1 = Last Created Entity;
-		Create Effect(All Players(All Teams), Sphere, Color(Red), Eye Position(Victim), 0.500, Visible To Position and Radius);
-		Victim.TOR_EFFECT2 = Last Created Entity;
-		Create Effect(All Players(All Teams), Sphere, Color(Red), Eye Position(Victim), 0.500, Visible To Position and Radius);
-		Victim.TOR_EFFECT3 = Last Created Entity;
-		Wait(5, Ignore Condition);
-		Wait Until(Victim.TOR_FIRED == 0, 99999);
-		Destroy Effect(Victim.TOR_EFFECT1);
-		Destroy Effect(Victim.TOR_EFFECT2);
-		Destroy Effect(Victim.TOR_EFFECT3);
-	}
-}
-
-rule("[겐지] : 능력 설명 *")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-	}
-
-	action
-	{
-		Create HUD Text(Event Player, Custom String("{0}             질주", Ability Icon String(Hero(겐지), Button(Ability 2))), Null,
-			Custom String(" E\r\n 일시적으로 이동속도 증가                                                    "), Left, 8, Color(Green), Color(흰색),
-			Color(흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 7, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0}          질풍참", Ability Icon String(Hero(겐지), Button(Ability 1))), Null,
-			Custom String(" SHIFT\r\n 1. 데스노트가 가장 적게 남은 플레이어에게 순간이동                        \r\n 2. 궁극기로 처치 시 질풍참 쿨타임 초기화 "), Left, 6,
-			Color(Green), Color(흰색), Color(흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 5, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0}             은신", Icon String(Eye)), Null, Custom String(
-			" 패시브\r\n 상태변화 효과를 받지 않고 움직임이 없으면 은신상태가 됨     "), Left, 4, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Left, 3, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 데스블레이드", Ability Icon String(Hero(겐지), Button(Ultimate))), Null, Custom String(
-			" Q\r\n 1. 궁극기에 맞은 적에게 넉백 효과 부여                                                          \r\n 2. 적이 궁극기에 6번 맞으면 즉시 사망"), Left,
-			2, Color(Green), Color(흰색), Color(흰색), None, Visible Never);
-		Set Primary Fire Enabled(Event Player, False);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Right, 2.500, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-		Create HUD Text(Event Player, Custom String("{0} 데스노트", Icon String(Poison)), Null, Null, Right, 2, Color(Red), Color(흰색), Color(
-			흰색), None, Visible Never);
-		Create HUD Text(Event Player, Null, Custom String("   "), Null, Right, 1.500, Color(Green), Color(Green), Color(흰색), None,
-			Visible Never);
-	}
-}
-
-rule("[겐지] : 패시브 - 이펙트")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-	}
-
-	action
-	{
-		Create Effect(Filtered Array(All Players(All Teams), Current Array Element != Event Player), Bad Aura, Color(Green), Event Player,
-			1, Visible To Position and Radius);
-		Event Player.Y = Last Created Entity;
-	}
-}
-
-rule("[겐지] : 패시브 - 투명 1 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Is Moving(Event Player) == False;
-		Has Status(Event Player, Hacked) == False;
-		Has Status(Event Player, Burning) == False;
-		Has Status(Event Player, Knocked Down) == False;
-		Has Status(Event Player, Asleep) == False;
-		Has Status(Event Player, Frozen) == False;
-		Has Status(Event Player, Rooted) == False;
-		Has Status(Event Player, Stunned) == False;
-	}
-
-	action
-	{
-		Set Invisible(Event Player, All);
-	}
-}
-
-rule("[겐지] : 패시브 - 투명 2")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Is Alive(Event Player) == True;
-		Is Moving(Event Player) == True;
-	}
-
-	action
-	{
-		Set Invisible(Event Player, None);
-	}
-}
-
-rule("[겐지] : 패시브 - 투명 3 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Is Alive(Event Player) == True;
-		(Has Status(Event Player, Hacked) || Has Status(Event Player, Burning) || Has Status(Event Player, Knocked Down) || Has Status(
-			Event Player, Asleep) || Has Status(Event Player, Frozen) || Has Status(Event Player, Rooted) || Has Status(Event Player,
-			Stunned)) == True;
-	}
-
-	action
-	{
-		Set Invisible(Event Player, None);
-	}
-}
-
-rule("[겐지] : 질풍참 - 발동 by Dote6")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Is Using Ability 1(Players On Hero(Hero(겐지), All Teams)) == True;
-		Is Alive(Event Player) == True;
-		Hero Of(Event Player) != Hero(겐지);
-		Has Spawned(Event Player) == True;
-		Event Player.Z != 1;
-	}
-
-	action
-	{
-		If(Event Player.GD == 1);
-			Wait(0.020, Ignore Condition);
-			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
-		Else If(Event Player.GD == 2);
-			Wait(0.040, Ignore Condition);
-			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
-		Else If(Event Player.GD == 3);
-			Wait(0.060, Ignore Condition);
-			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
-		Else If(Event Player.GD == 4);
-			Wait(0.080, Ignore Condition);
-			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
-		Else If(Event Player.GD == 5);
-			Wait(0.100, Ignore Condition);
-			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
-		Else;
-			Wait(0.120, Ignore Condition);
-			Global.GD_playerarray = Append To Array(Global.GD_playerarray, Event Player);
-	}
-}
-
-rule("[겐지] : 질풍참 - 순간이동 by Dote6")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Is Using Ability 1(Event Player) == True;
-	}
-
-	action
-	{
-		Global.GD_playerarray = Empty Array;
-		Wait(0.300, Ignore Condition);
-		If(Global.GD_playerarray != Empty Array);
-			Teleport(Event Player, Position Of(Global.GD_playerarray[0]) + Vector(0, 0.600, 0));
-			Wait(0.100, Ignore Condition);
-			Set Facing(Event Player, Vector Towards(Event Player, Global.GD_playerarray[0] + Vector(0, 0.600, 0)), To World);
-	}
-}
-
-rule("[겐지] : 튕겨내기 - 질주")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Is Using Ability 2(Event Player) == True;
-		Has Spawned(Event Player) == True;
-	}
-
-	action
-	{
-		Set Move Speed(Event Player, 300);
-		Wait(1.800, Ignore Condition);
-		Set Move Speed(Event Player, 120);
-	}
-}
-
-rule("[겐지] : 궁극기 - 넉백 by KISUM")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		겐지;
-	}
-
-	condition
-	{
-		Is Using Ultimate(Event Player) == True;
-		Is Using Ability 2(Event Player) == False;
-		Victim.GD > 0;
-	}
-
-	action
-	{
-		Abort If Condition Is False;
-		Apply Impulse(Victim, Position Of(Victim) - Position Of(Event Player), 40, To World, Cancel Contrary Motion);
-		Victim.GD = Victim.GD + -1;
-		Small Message(Victim, Custom String("{0} 겐지 : 내 용검 맛이 어떠느냐", Hero Icon String(Hero(겐지))));
-	}
-}
-
-rule("[겐지] : 궁극기 - 횟수 표시 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-		Hero Of(Event Player) != Hero(겐지);
-	}
-
-	action
-	{
-		Create HUD Text(Players On Hero(Hero(겐지), All Teams), Custom String("{0} {1}회 남음", Hero Icon String(Hero Of(Event Player)),
-			Event Player.GD), Null, Null, Right, 3, Color(흰색), Color(흰색), Color(Red), Visible To and String, Default Visibility);
-		Event Player.G_GAGE_H = Last Text ID;
-	}
-}
-
-rule("[겐지] : 궁극기 - 게이지 표시 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Has Spawned(Players On Hero(Hero(겐지), All Teams)) == True;
-	}
-
-	action
-	{
-		Event Player.GD = 6;
-		Create Progress Bar HUD Text(Filtered Array(Event Player, Current Array Element != Players On Hero(Hero(겐지), All Teams)),
-			16.666 * Event Player.GD, Custom String("{1} 겐지의 궁극기에 {0}번 더 공격받으면 즉시 사망", Event Player.GD, Hero Icon String(Hero(겐지))), Top,
-			5, Color(Red), Color(흰색), Visible To Values and Color, Default Visibility);
-		Event Player.G_GAGE = Last Text ID;
-	}
-}
-
-rule("[겐지] : 궁극기 - 사망 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Event Player.GD <= 0;
-	}
-
-	action
-	{
-		Kill(Event Player, Players On Hero(Hero(겐지), All Teams));
-		Small Message(Event Player, Custom String("{0} 겐지 : 내 용검으로 죽은걸 영광스러워해라", Hero Icon String(Hero(겐지))));
-		If(Is Using Ultimate(Players On Hero(Hero(겐지), All Teams)) == True);
-			Set Ability Cooldown(Event Player, Button(Ability 1), 0);
-			Small Message(Players On Hero(Hero(겐지), All Teams), Custom String("질풍참 사용 가능"));
-	}
-}
-
-rule("[겐지] : 궁극기 - 사망시 게이지 삭제 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Is Dead(Players On Hero(Hero(겐지), All Teams)) == True;
-	}
-
-	action
-	{
-		Destroy Progress Bar HUD Text(Event Player.G_GAGE);
-	}
-}
-
-rule("[겐지] : 궁극기 - 퇴장시 게이지 삭제 by KISUM")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Entity Exists(Players On Hero(Hero(겐지), All Teams)) == False;
-	}
-
-	action
-	{
-		Destroy Progress Bar HUD Text(All Players(All Teams).G_GAGE);
-	}
-}
-
-rule("[겐지] : 궁극기 - 부활시 횟수 표시 by KISUM (버그수정)")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Event Player.RV_GAGE == 1;
-		Hero Of(Event Player) != Hero(겐지);
-	}
-
-	action
-	{
-		Event Player.GD = 3;
-		Create HUD Text(Players On Hero(Hero(겐지), All Teams), Custom String("{0} {1}회 남음", Hero Icon String(Hero Of(Event Player)),
-			Event Player.GD), Null, Null, Right, 3, Color(흰색), Color(흰색), Color(Red), Visible To and String, Default Visibility);
-		Event Player.G_GAGE_H = Last Text ID;
-	}
-}
-
-rule("[겐지] : 궁극기 - 부활시 게이지 표시 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Players On Hero(Hero(겐지), All Teams).RV_GAGE == 1;
-	}
-
-	action
-	{
-		Create Progress Bar HUD Text(Filtered Array(Event Player, Current Array Element != Players On Hero(Hero(겐지), All Teams)),
-			16.666 * Event Player.GD, Custom String("{1} 겐지의 궁극기에 {0}번 더 공격받으면 즉시 사망", Event Player.GD, Hero Icon String(Hero(겐지))), Top,
-			5, Color(Red), Color(흰색), Visible To Values and Color, Default Visibility);
-		Event Player.G_GAGE = Last Text ID;
-	}
-}
-
-rule("[겐지] : 궁극기 - 횟수 표시 삭제 1 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Is Alive(Event Player) == False;
-	}
-
-	action
-	{
-		Destroy HUD Text(Event Player.G_GAGE_H);
-	}
-}
-
-rule("[겐지] : 궁극기 - 횟수 표시 삭제 2 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Event Player == Players On Hero(Hero(겐지), All Teams);
-	}
-
-	action
-	{
-		Destroy HUD Text(Event Player.G_GAGE_H);
-	}
-}
-
-rule("[겐지] : 바티스트 불사 장치 사망 X 해결 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		바티스트;
-	}
-
-	condition
-	{
-		Is Alive(Event Player) == True;
-		Event Player.GD <= 0;
-	}
-
-	action
-	{
-		Wait(0.250, Ignore Condition);
-		Abort If Condition Is False;
-		Event Player.GD = 1;
 	}
 }
 
@@ -6192,6 +6145,7 @@ rule("[메르시] : 무빙 - 스턴 by KISUM")
 
 	condition
 	{
+		Event Player.ttek_right_enable == False;
 		Has Spawned(Event Player) == True;
 		Is Alive(Event Player) == True;
 		Is Meleeing(Event Player) == True;
@@ -6904,29 +6858,6 @@ rule("[아나] : 능력 설명 *")
 		Create HUD Text(Event Player, Custom String("{0} 나노 강화제", Ability Icon String(Hero(아나), Button(Ultimate))), Null, Custom String(
 			" Q (에임 필요)\r\n 1. 조준선에 가장 가까운 적에게 5초간 수면상태 부여\r\n 2. 모든 적들에게 1.5초간 수면상태 부여 (10라운드까지만 발동)     "), Left, 4, Color(Green), Color(
 			흰색), Color(흰색), None, Visible Never);
-	}
-}
-
-disabled rule("[아나] : 생체 수류탄 - 수면 by KISUM")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		아나;
-	}
-
-	condition
-	{
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-		Is Using Ability 2(Event Player) == True;
-	}
-
-	action
-	{
-		Set Status(Victim, Null, Asleep, 3);
-		Small Message(Victim, Custom String("{0} 아나 : 잠깐 눈 좀 붙여", Hero Icon String(Hero(아나))));
 	}
 }
 
@@ -8189,7 +8120,6 @@ rule("[바티스트] : 세일러문 trigger by Dote6")
 
 	condition
 	{
-		Event Player.teleport_trigger != 1;
 		Global.door_count > 0;
 		Angle Between Vectors(Players On Hero(Hero(바티스트), All Teams).left_end_ - Vector(X Component Of(Position Of(Event Player)),
 			Y Component Of(Players On Hero(Hero(바티스트), All Teams).aim_vector_), Z Component Of(Position Of(Event Player))),
@@ -8201,7 +8131,7 @@ rule("[바티스트] : 세일러문 trigger by Dote6")
 
 	action
 	{
-		Event Player.teleport_trigger = 1;
+		Start Rule(BATI_TEL_TRIGGER, Restart Rule);
 	}
 }
 
@@ -8209,14 +8139,8 @@ rule("[바티스트] : 세일러문 통과 by Dote6")
 {
 	event
 	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Event Player.teleport_trigger == 1;
+		Subroutine;
+		BATI_TEL_TRIGGER;
 	}
 
 	action
@@ -8255,7 +8179,6 @@ rule("[바티스트] : 세일러문 통과 by Dote6")
 				Damage(Event Player, Players On Hero(Hero(바티스트), All Teams), 100);
 			End;
 		End;
-		Event Player.teleport_trigger = 0;
 	}
 }
 
@@ -9510,6 +9433,7 @@ rule("[에코] : 스킬 - 즉시 사망 by KISUM")
 	condition
 	{
 		Has Spawned(Event Player) == True;
+		Event Player.ttek_right_enable == False;
 	}
 
 	action
@@ -12449,269 +12373,6 @@ rule("What a colorful world by Dote6")
 	}
 }
 
-rule("[Team] Shambali Monastery Sphere Spawnpoints, 4maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(샴발리 수도원);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 4);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(14.430, 10.600, 37.440));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(14.150, 15.600, 42.380));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(4.380, 14.600, 59.960));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-4.100, 11.600, 54.850));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(5.470, 9.460, 32.740));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-2.990, 10.600, 32.990));
-		Global.ArenaCentre = Vector(5.460, 9.750, 49.980);
-		Global.ArenaRadius = 22;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-53.280, 23.600, 112.870));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-39.060, 21.600, 105.380));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.180, 23.850, 88.650));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.430, 15.600, 88.660));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-51.790, 15.600, 81.290));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-40.660, 14.600, 66.210));
-		Global.ArenaCentre = Vector(-45.790, 16.530, 91.040);
-		Global.ArenaRadius = 31;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.360, 25.600, 121.670));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-1.810, 25.600, 128.670));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(6.650, 27.600, 117.560));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(5.530, 28.010, 104.140));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-7.520, 21.500, 98.740));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-22.240, 23.600, 109.380));
-		Global.ArenaCentre = Vector(-7.530, 25, 113.940);
-		Global.ArenaRadius = 20;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-53.200, 29.600, 185.890));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-27.880, 29.600, 163.250));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-55.500, 27.600, 167.230));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-50.740, 30.660, 151.290));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-33.860, 25.510, 150.550));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-38.300, 27.500, 182.260));
-		Global.ArenaCentre = Vector(-48.840, 26.800, 165.220);
-		Global.ArenaRadius = 27;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-	}
-}
-
-rule("[Team] Circuit Royal Sphere Spawnpoints, 4maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(서킷 로얄);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 4);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-20.060, 6.630, -44.160));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-37.760, 10.600, -34.070));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-37.380, 4.850, -23.040));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-27.310, 6.640, -11.790));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-10, 6.600, -15.030));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-13.100, 12.560, -18.090));
-		Global.ArenaCentre = Vector(-22.370, 5.830, -26.340);
-		Global.ArenaRadius = 23;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(9.480, 10.600, -41.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(9.040, 6.450, -16.580));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(30.230, 15.600, -18.680));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(16.310, 15.600, -44.860));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(26.770, 13.350, -29.390));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-1.750, 10.610, -30.350));
-		Global.ArenaCentre = Vector(15.160, 10.290, -31);
-		Global.ArenaRadius = 26;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(70.180, 19.550, 11.650));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(42.420, 15.560, 36.270));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(62.330, 15.560, -7.110));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(55.810, 15.560, 7.600));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(44.020, 20.560, 20.770));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(59.040, 11.560, 31.510));
-		Global.ArenaCentre = Vector(53.890, 12.960, 15.760);
-		Global.ArenaRadius = 30;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(108.750, 11.560, 11.880));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(93.610, 11.560, 32.470));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(83.550, 11.560, 16.190));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(90.440, 17.560, 12.040));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(100.420, 17.560, 28.100));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(108.340, 17.560, 12.060));
-		Global.ArenaCentre = Vector(98.370, 8.960, 18.250);
-		Global.ArenaRadius = 26;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-	}
-}
-
-rule("[Team] Midtown Sphere Spawnpoints, 5maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(미드타운);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 5);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-24.690, 11.590, 82.600));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-15.940, 4.350, 80.670));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-3.730, 4.350, 85.420));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(4.590, 4.590, 100.940));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-1.250, 9.120, 88.820));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-12.810, 4.590, 94.420));
-		Global.ArenaCentre = Vector(-16.430, 3.990, 99.530);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-17.160, 9.580, 49.470));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-9.480, 4.350, 48.310));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(8.460, 4.590, 51.630));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-0.130, 11.180, 65.510));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-14.780, 11.180, 62.830));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-2.580, 4.390, 69.990));
-		Global.ArenaCentre = Vector(-7.280, 3.750, 54.940);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(61.350, -1.560, 3.030));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(59.300, 7.450, -12.130));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(63.910, 8.440, 9.340));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(50.940, 9.270, 17.650));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(37.330, -0.520, 8.440));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(32.950, 6.440, -5.890));
-		Global.ArenaCentre = Vector(50.230, 7.880, 0.780);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 4, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(96.040, 11.800, -29.010));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(114.340, 8.490, -9.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(108.350, 3.440, -35.310));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(92.100, 4.440, -4.360));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(82.390, 4.450, -31.470));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(89.240, 4.440, -19.970));
-		Global.ArenaCentre = Vector(98.990, 3.840, -18.280);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(92.910, 5.440, -55.140));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(97.450, 12.450, -57.340));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(92.790, 12.450, -71.750));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(114.430, 3.440, -78.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(128.330, 1.580, -65.750));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(118.370, 4.440, -55.510));
-		Global.ArenaCentre = Vector(108.970, 2.840, -72.470);
-		Global.ArenaRadius = 30;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-	}
-}
-
-rule("[Team] Rialto Sphere Spawnpoints, 4maps")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Current Map == Map(리알토);
-	}
-
-	action
-	{
-		Global.SphereLocations = Empty Array;
-		Global.DynamicTrigger = 1;
-		Global.ArenaID = Random Integer(1, 4);
-		Wait(0.016, Ignore Condition);
-		Skip If(Global.ArenaID != 1, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(73.920, 4.360, -16.630));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(85.670, 4.350, -25.430));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(79.180, -0.650, -31.890));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(51.870, 0.360, -31.980));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(63.720, 0.350, -51.050));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(57.750, 5.350, -25.490));
-		Global.ArenaCentre = Vector(69.610, -1.400, -30.570);
-		Global.ArenaRadius = 26;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 2, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(14.640, -1.140, -77.620));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(13.830, -1.250, -58.070));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(27.220, -0.710, -53.200));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(34.200, 0.370, -86.010));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(38.060, 0.350, -52));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(34.860, 6.350, -68.510));
-		Global.ArenaCentre = Vector(31.130, -0.350, -68.540);
-		Global.ArenaRadius = 25;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Skip If(Global.ArenaID != 3, 10);
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-23.650, -0.650, -29.270));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(3.980, 4.350, -35.160));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(1.330, 6.350, -52.970));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-15.610, 6.350, -48.140));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-3.130, 0.350, -55.950));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-30.210, -0.740, -54.100));
-		Global.ArenaCentre = Vector(-11.530, -1.370, -42.090);
-		Global.ArenaRadius = 28;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-		Abort;
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-26.070, -0.650, -79.510));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-26.700, 5.350, -85.020));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-24.870, 2.350, -102.630));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-42.320, 5.350, -80.860));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-41.070, 2.350, -103.230));
-		Global.SphereLocations = Append To Array(Global.SphereLocations, Vector(-49.870, 3.350, -89));
-		Global.ArenaCentre = Vector(-35.920, 1.410, -92.820);
-		Global.ArenaRadius = 23;
-		Create Effect(All Players(All Teams), Sphere, Color(흰색), Global.ArenaCentre, Global.ArenaRadius, Visible To);
-	}
-}
-
 rule("[Sub] SombraHide")
 {
 	event
@@ -12743,6 +12404,7 @@ rule("[특전] 활성화 -> 좌클/우클 대기 (추가 by Dote6) // 건드리�
 	condition
 	{
 		Event Player.ttek_trigger == True;
+		Global.RoundNumber < 10;
 		Has Spawned(Event Player) == True;
 		Is Alive(Event Player) == True;
 	}
@@ -12750,7 +12412,9 @@ rule("[특전] 활성화 -> 좌클/우클 대기 (추가 by Dote6) // 건드리�
 	action
 	{
 		Event Player.ttek_trigger = False;
-		Big Message(Event Player, Custom String("{0} 특전이 열렸습니다!", Icon String(Fire)));
+		If(Global.KING != Event Player);
+			Big Message(Event Player, Custom String("{0} 특전이 열렸습니다!", Icon String(Fire)));
+		End;
 		"공백용"
 		Create HUD Text(Event Player, Custom String(""), Custom String(""), Custom String(
 			" \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n \r\n "), Top, 9.500, Color(Violet), Color(
@@ -12862,6 +12526,7 @@ rule("[특전] 둠피스트 우클릭")
 
 	action
 	{
+		Wait Until(Is In Air(Event Player) == False, 99999);
 		Set Status(Victim, Null, Knocked Down, 1.250);
 	}
 }
@@ -13323,9 +12988,10 @@ rule("[특전] 시그마 우클릭")
 	{
 		Big Message(All Players(All Teams), Custom String("{0} 시그마 : 지구가! 너희에게 노래하고 있어!!", Hero Icon String(Hero(시그마))));
 		Damage(All Living Players(All Teams), Event Player, 100);
-		Apply Impulse(All Living Players(All Teams), Vector(0, -3, 0), 15, To Player, Cancel Contrary Motion);
+		Apply Impulse(Filtered Array(All Living Players(All Teams), Current Array Element != Event Player), Vector(0, -3, 0), 15,
+			To Player, Cancel Contrary Motion);
 		Wait(1.600, Ignore Condition);
-		Set Status(All Living Players(All Teams), Null, Knocked Down, 1.400);
+		Set Status(Filtered Array(All Living Players(All Teams), Current Array Element != Event Player), Null, Knocked Down, 1.400);
 	}
 }
 
@@ -13539,7 +13205,6 @@ rule("[특전] 정커퀸 우클릭 기본 by Dote6")
 	action
 	{
 		Set Status(Event Player, Null, Hacked, 0.010);
-		Set Ability 2 Enabled(Event Player, False);
 		Set Ability Cooldown(Event Player, Button(Secondary Fire), 3);
 		Destroy HUD Text(Event Player.queen_var[8]);
 		Wait(0.016, Ignore Condition);
@@ -13784,13 +13449,13 @@ rule("윈스턴 좌클 특전 효과")
 
 	action
 	{
-		Set Primary Fire Enabled(Event Player, True);
+		Set Secondary Fire Enabled(Event Player, True);
 		Set Max Ammo(Event Player, 0, 20);
 		Set Ammo(Event Player, 0, 20);
 	}
 }
 
-rule("윈스턴 좌클")
+rule("윈스턴 좌클 특전 효과")
 {
 	event
 	{
@@ -13802,12 +13467,12 @@ rule("윈스턴 좌클")
 	condition
 	{
 		Event Player.ttek_left_enable == True;
-		Is Firing Primary(Event Player) == True;
+		Is Using Ultimate(Event Player) == False;
 	}
 
 	action
 	{
-		Set Status(Victim, Event Player, Stunned, 0.500);
+		Set Status(Victim, Event Player, Stunned, 1);
 		Wait(0.500, Ignore Condition);
 	}
 }
@@ -13816,7 +13481,7 @@ rule("윈스턴 우클 특전 효과")
 {
 	event
 	{
-		Ongoing - Each Player;
+		Player Dealt Knockback;
 		All;
 		윈스턴;
 	}
@@ -13824,28 +13489,7 @@ rule("윈스턴 우클 특전 효과")
 	condition
 	{
 		Event Player.ttek_right_enable == True;
-		Is Using Ability 1(Event Player) == True;
-	}
-
-	action
-	{
-		Set Ability Cooldown(Event Player, Button(Ability 1), 15);
-	}
-}
-
-rule("윈스턴 우클")
-{
-	event
-	{
-		Player Dealt Damage;
-		All;
-		윈스턴;
-	}
-
-	condition
-	{
-		Event Player.ttek_right_enable == True;
-		Is Using Ultimate(Event Player) != True;
+		Is Using Ultimate(Event Player) == False;
 	}
 
 	action
@@ -13872,23 +13516,23 @@ rule("라이프위버 좌클 특전 효과")
 	action
 	{
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 5);
 		Wait(1.750, Ignore Condition);
-		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 6);
+		Set Ultimate Charge(Event Player, Ultimate Charge Percent(Event Player) + 10);
 	}
 }
 
@@ -13986,7 +13630,7 @@ rule("메르시 우클 특전 효과")
 {
 	event
 	{
-		Ongoing - Each Player;
+		Player Dealt Damage;
 		All;
 		메르시;
 	}
@@ -13994,12 +13638,15 @@ rule("메르시 우클 특전 효과")
 	condition
 	{
 		Event Player.ttek_right_enable == True;
+		Has Spawned(Event Player) == True;
+		Is Alive(Event Player) == True;
+		Is Meleeing(Event Player) == True;
 	}
 
 	action
 	{
-		Event Player.MER = Random Integer(1, 20);
-		Set Melee Enabled(Event Player, True);
+		Set Status(Victim, Null, Stunned, 1.200);
+		Small Message(Victim, Custom String("{0} 메르시 : 비켜!", Hero Icon String(Hero(메르시))));
 	}
 }
 
@@ -14786,13 +14433,14 @@ rule("솔저: 76 우클 특전 효과")
 	condition
 	{
 		Event Player.ttek_right_enable == True;
-		Is Firing Primary(Event Player) == True;
-		Ability Cooldown(Event Player, Button(Secondary Fire)) != 0;
+		Is Using Ultimate(Event Player) == True;
 	}
 
 	action
 	{
 		Set Ability Cooldown(Event Player, Button(Secondary Fire), 0);
+		Wait(0.100, Ignore Condition);
+		Loop If Condition Is True;
 	}
 }
 
@@ -14808,14 +14456,12 @@ rule("솜브라 좌클 특전 효과")
 	condition
 	{
 		Event Player.ttek_left_enable == True;
-		Is Alive(Event Player) == True;
+		Ability Cooldown(Event Player, Button(Ability 2)) > 25;
 	}
 
 	action
 	{
-		Set Invisible(Event Player, All);
-		Wait Until(Is Dead(Event Player), 99999);
-		Set Invisible(Event Player, None);
+		Set Ability Cooldown(Event Player, Button(Ability 2), 25);
 	}
 }
 
@@ -14969,20 +14615,25 @@ rule("에코 우클 특전 효과")
 {
 	event
 	{
-		Ongoing - Each Player;
+		Player Dealt Damage;
 		All;
 		에코;
 	}
 
 	condition
 	{
+		Is Alive(Event Player) == True;
 		Event Player.ttek_right_enable == True;
 	}
 
 	action
 	{
-		Set Ability Cooldown(Event Player, Button(Secondary Fire), 0);
-		Press Button(Event Player, Button(Secondary Fire));
+		Kill(Victim, Attacker);
+		Small Message(Victim, Custom String("{0} 에코 : 나를 만만하게 본 죄값이야!", Hero Icon String(Hero(에코))));
+		Cancel Primary Action(Event Player);
+		Wait(0.500, Ignore Condition);
+		Set Ability Cooldown(Event Player, Button(Ability 2), 40);
+		Set Ability Cooldown(Event Player, Button(Secondary Fire), 60);
 	}
 }
 
@@ -15435,7 +15086,7 @@ rule("프레야 우클 특전 효과")
 
 	action
 	{
-		Set Move Speed(Event Player, 600);
+		Set Move Speed(Event Player, 500);
 		Wait Until(Is Firing Primary(Event Player) == True || Is Button Held(Event Player, Button(Secondary Fire)) == False, 100000000);
 		Set Move Speed(Event Player, 120);
 		Wait(0.250, Ignore Condition);
@@ -15981,63 +15632,78 @@ rule("[최적화, 코드 단축] 워크샵 맵 제외 모든 맵 통합 - 2 (기
 	}
 }
 
-rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영웅별 텍스트를 입력하세요 (정크랫 수정, Dote6, 250506)")
+rule("[특전, 왕] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영웅별 텍스트를 입력하세요 (왕 특혜 수정, 0719)")
 {
 	event
 	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Global.RoundNumber == 5;
+		Subroutine;
+		TTEK_TRIGGER;
 	}
 
 	action
 	{
+		Players On Hero(Hero(D.Va), All Teams).ttek_text[0] = Custom String("쏠 수 있어! {0}", Ability Icon String(Hero(캐서디), Button(
+			Primary Fire)));
+		Players On Hero(Hero(D.Va), All Teams).ttek_text[1] = Custom String("송하나가 총을 쏠 때 스턴 상태가 1/4로 단축됨");
+		Players On Hero(Hero(D.Va), All Teams).ttek_text[2] = Custom String("에임 연습 {0}", Icon String(Flag));
+		Players On Hero(Hero(D.Va), All Teams).ttek_text[3] = Custom String("송하나 빙글뱅글 5회 추가");
 		Players On Hero(Hero(둠피스트), All Teams).ttek_text[0] = Custom String("시간을 달려서 {0}", Ability Icon String(Hero(트레이서), Button(
 			Ability 1)));
 		Players On Hero(Hero(둠피스트), All Teams).ttek_text[1] = Custom String("시간 연장 횟수 3회 추가");
 		Players On Hero(Hero(둠피스트), All Teams).ttek_text[2] = Custom String("그때 그 시절 {0}", Ability Icon String(Hero(둠피스트), Button(
 			Ability 1)));
 		Players On Hero(Hero(둠피스트), All Teams).ttek_text[3] = Custom String("지진 강타에 맞은 적을 1.25초간 넉다운시킴");
-		Players On Hero(Hero(마우가), All Teams).ttek_text[0] = Custom String("피가 끓어오른다 {0}", Icon String(Fire));
-		Players On Hero(Hero(마우가), All Teams).ttek_text[1] = Custom String("E키가 활성화 되며 E를 사용하는 동안 주변 적들에게 화상 상태 부여");
-		Players On Hero(Hero(마우가), All Teams).ttek_text[2] = Custom String("쿵쾅쿵쾅 {0}", Hero Icon String(Hero(자리야)));
-		Players On Hero(Hero(마우가), All Teams).ttek_text[3] = Custom String("돌파에 피격된 적이 1.5초간 넘어짐");
 		Players On Hero(Hero(라마트라), All Teams).ttek_text[0] = Custom String("응징의 소용돌이 {0}", Ability Icon String(Hero(라마트라), Button(
 			Ability 2)));
 		Players On Hero(Hero(라마트라), All Teams).ttek_text[1] = Custom String("적들에게 스턴상태를 부여하는 탐식의 소용돌이 사용 가능");
 		Players On Hero(Hero(라마트라), All Teams).ttek_text[2] = Custom String("화끈한 절멸 {0}", Icon String(Fire));
 		Players On Hero(Hero(라마트라), All Teams).ttek_text[3] = Custom String("절멸 범위 내 적들에게 화상상태 부여");
-		Players On Hero(Hero(로드호그), All Teams).ttek_text[0] = Custom String("신속의 물약 {0}", Hero Icon String(Hero(트레이서)));
-		Players On Hero(Hero(로드호그), All Teams).ttek_text[1] = Custom String("우클릭 사용 시 이동속도가 2배가 됨");
-		Players On Hero(Hero(로드호그), All Teams).ttek_text[2] = Custom String("치유의 물약 {0}", Hero Icon String(Hero(메르시)));
-		Players On Hero(Hero(로드호그), All Teams).ttek_text[3] = Custom String("최대 수명이 5R 증가함");
+		Players On Hero(Hero(라이프위버), All Teams).ttek_text[0] = Custom String("아낌없이 주는 나무 {0}", Ability Icon String(Hero(라이프위버), Button(
+			Ultimate)));
+		Players On Hero(Hero(라이프위버), All Teams).ttek_text[1] = Custom String("궁극기 사용 시 자신의 궁극기 게이지 일정량이 주기적으로 증가함");
+		Players On Hero(Hero(라이프위버), All Teams).ttek_text[2] = Custom String("러브단상 {0}", Icon String(Heart));
+		Players On Hero(Hero(라이프위버), All Teams).ttek_text[3] = Custom String("연꽃 단상의 쿨타임이 15초로 단축됨");
 		Players On Hero(Hero(라인하르트), All Teams).ttek_text[0] = Custom String("불망치 {0}", Icon String(Fire));
 		Players On Hero(Hero(라인하르트), All Teams).ttek_text[1] = Custom String("기본 공격에 맞은 적군에게 화염 상태 부여");
 		Players On Hero(Hero(라인하르트), All Teams).ttek_text[2] = Custom String("변화(火)구 {0}", Ability Icon String(Hero(라인하르트), Button(
 			Ability 2)));
 		Players On Hero(Hero(라인하르트), All Teams).ttek_text[3] = Custom String("화염 강타(E) 활성화");
-		Players On Hero(Hero(해저드), All Teams).ttek_text[0] = Custom String("더 아픈 주사 {0}", Ability Icon String(Hero(해저드), Button(
-			Secondary Fire)));
-		Players On Hero(Hero(해저드), All Teams).ttek_text[1] = Custom String("불주사에 맞은 적을 넉백시킴");
-		Players On Hero(Hero(해저드), All Teams).ttek_text[2] = Custom String("광역 속박 {0}", Ability Icon String(Hero(해저드), Button(Ultimate)));
-		Players On Hero(Hero(해저드), All Teams).ttek_text[3] = Custom String("궁극기 사용 시 모든 적 속박");
 		Players On Hero(Hero(레킹볼), All Teams).ttek_text[0] = Custom String("잔상 {0}", Ability Icon String(Hero(솜브라), Button(Ability 2)));
 		Players On Hero(Hero(레킹볼), All Teams).ttek_text[1] = Custom String("상호작용 시 공중으로 순간이동 (쿨타임: 30초)");
 		Players On Hero(Hero(레킹볼), All Teams).ttek_text[2] = Custom String("강화된 보호막 {0}", Ability Icon String(Hero(레킹볼), Button(
 			Ability 2)));
 		Players On Hero(Hero(레킹볼), All Teams).ttek_text[3] = Custom String("보호막을 사용하는 동안 피해를 받지 않음");
+		Players On Hero(Hero(로드호그), All Teams).ttek_text[0] = Custom String("신속의 물약 {0}", Hero Icon String(Hero(트레이서)));
+		Players On Hero(Hero(로드호그), All Teams).ttek_text[1] = Custom String("우클릭 사용 시 이동속도가 2배가 됨");
+		Players On Hero(Hero(로드호그), All Teams).ttek_text[2] = Custom String("치유의 물약 {0}", Hero Icon String(Hero(메르시)));
+		Players On Hero(Hero(로드호그), All Teams).ttek_text[3] = Custom String("최대 수명이 5R 증가함");
+		Players On Hero(Hero(마우가), All Teams).ttek_text[0] = Custom String("피가 끓어오른다 {0}", Icon String(Fire));
+		Players On Hero(Hero(마우가), All Teams).ttek_text[1] = Custom String("E키가 활성화 되며 E를 사용하는 동안 주변 적들에게 화상 상태 부여");
+		Players On Hero(Hero(마우가), All Teams).ttek_text[2] = Custom String("쿵쾅쿵쾅 {0}", Hero Icon String(Hero(자리야)));
+		Players On Hero(Hero(마우가), All Teams).ttek_text[3] = Custom String("돌파에 피격된 적이 1.5초간 넘어짐");
+		Players On Hero(Hero(메이), All Teams).ttek_text[0] = Custom String("Let it go {0}", Ability Icon String(Hero(메이), Button(
+			Primary Fire)));
+		Players On Hero(Hero(메이), All Teams).ttek_text[1] = Custom String("스프레이 150회를 추가로 획득함");
+		Players On Hero(Hero(메이), All Teams).ttek_text[2] = Custom String("고드름 {0}", Ability Icon String(Hero(메이), Button(
+			Secondary Fire)));
+		Players On Hero(Hero(메이), All Teams).ttek_text[3] = Custom String("우클릭에 맞은 적에게 빙결상태 부여 (원거리 공격)");
 		Players On Hero(Hero(시그마), All Teams).ttek_text[0] = Custom String("공중부양 {0}", Ability Icon String(Hero(메르시), Button(Ability 1)));
 		Players On Hero(Hero(시그마), All Teams).ttek_text[1] = Custom String("시그마가 공중부양할 수 있음 (단 공중부양하는 동안 이동속도 감소)");
 		Players On Hero(Hero(시그마), All Teams).ttek_text[2] = Custom String("고중력 붕괴 {0}", Ability Icon String(Hero(시그마), Button(
 			Ability 2)));
-		Players On Hero(Hero(시그마), All Teams).ttek_text[3] = Custom String("SHIFT 사용 시 모두를 바닥으로 가라앉히고 넉다운 부여\n (자신 포함, 더이상 저중력 붕괴 사용불가)");
+		Players On Hero(Hero(시그마), All Teams).ttek_text[3] = Custom String("SHIFT 사용 시 모두를 바닥으로 가라앉히고 넉다운 부여\n (더 이상 저중력 붕괴 사용불가)");
+		Players On Hero(Hero(시메트라), All Teams).ttek_text[0] = Custom String("냉온고문 {0}", Hero Icon String(Hero(토르비욘)));
+		Players On Hero(Hero(시메트라), All Teams).ttek_text[1] = Custom String("버블버블을 맞은 적에게 화상 부여");
+		Players On Hero(Hero(시메트라), All Teams).ttek_text[2] = Custom String("레이저제모 {0}", Hero Icon String(Hero(윈스턴)));
+		Players On Hero(Hero(시메트라), All Teams).ttek_text[3] = Custom String("스턴 상태를 부여하는 좌클릭 활성화");
 		Players On Hero(Hero(오리사), All Teams).ttek_text[0] = Custom String("공격 강화 {0}", Ability Icon String(Hero(오리사), Button(Ability 1)));
 		Players On Hero(Hero(오리사), All Teams).ttek_text[1] = Custom String("투창 및 수호의 창 쿨타임이 30% 감소됨 (영구)");
 		Players On Hero(Hero(오리사), All Teams).ttek_text[2] = Custom String("완전무적 {0}", Ability Icon String(Hero(오리사), Button(Ultimate)));
 		Players On Hero(Hero(오리사), All Teams).ttek_text[3] = Custom String("완전무적 상태가 될 수 있는 궁극기 사용 가능 (1회)");
+		Players On Hero(Hero(윈스턴), All Teams).ttek_text[0] = Custom String("전기숭이 {0}", Icon String(Bolt));
+		Players On Hero(Hero(윈스턴), All Teams).ttek_text[1] = Custom String("우클릭에 맞은 적에게 짧은 스턴 효과 부여");
+		Players On Hero(Hero(윈스턴), All Teams).ttek_text[2] = Custom String("깡패숭이 {0}", Hero Icon String(Hero(둠피스트)));
+		Players On Hero(Hero(윈스턴), All Teams).ttek_text[3] = Custom String("점프팩에 맞은 적에게 넉다운 효과 부여");
 		Players On Hero(Hero(자리야), All Teams).ttek_text[0] = Custom String("포켓걸 자리야 {0}", Icon String(Heart));
 		Players On Hero(Hero(자리야), All Teams).ttek_text[1] = Custom String("자리야가 주머니에 쏙♥ 들어갈 사이즈로 변경됨");
 		Players On Hero(Hero(자리야), All Teams).ttek_text[2] = Custom String("깃털같은 몸짓 {0}", Ability Icon String(Hero(메르시), Button(Jump)));
@@ -16046,28 +15712,20 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(정커퀸), All Teams).ttek_text[1] = Custom String("근접 공격으로 흡혈 가능 (쿨타임: 3초)");
 		Players On Hero(Hero(정커퀸), All Teams).ttek_text[2] = Custom String("입체기동 톱니칼 II {0}", Ability Icon String(Hero(정커퀸), Button(
 			Secondary Fire)));
-		Players On Hero(Hero(정커퀸), All Teams).ttek_text[3] = Custom String("입체기동 톱니칼이 대폭 강화되지만, 도륙 사용 불가");
-		Players On Hero(Hero(D.Va), All Teams).ttek_text[0] = Custom String("쏠 수 있어! {0}", Ability Icon String(Hero(캐서디), Button(
-			Primary Fire)));
-		Players On Hero(Hero(D.Va), All Teams).ttek_text[1] = Custom String("송하나가 총을 쏠 때 스턴 상태가 1/4로 단축됨");
-		Players On Hero(Hero(D.Va), All Teams).ttek_text[2] = Custom String("에임 연습 {0}", Icon String(Flag));
-		Players On Hero(Hero(D.Va), All Teams).ttek_text[3] = Custom String("송하나 빙글뱅글 5회 추가");
-		Players On Hero(Hero(윈스턴), All Teams).ttek_text[0] = Custom String("자... 이게 클릭이야");
-		Players On Hero(Hero(윈스턴), All Teams).ttek_text[1] = Custom String("좌클릭에 맞은 적에게 짧은 스턴 효과 부여");
-		Players On Hero(Hero(윈스턴), All Teams).ttek_text[2] = Custom String("깔아뭉개기");
-		Players On Hero(Hero(윈스턴), All Teams).ttek_text[3] = Custom String("점프팩에 맞은 적에게 넉다운 부여\r\n (점프팩 쿨타임 3배 증가)");
-		Players On Hero(Hero(라이프위버), All Teams).ttek_text[0] = Custom String("아낌없이 주는 나무");
-		Players On Hero(Hero(라이프위버), All Teams).ttek_text[1] = Custom String("궁극기 사용 시 자신의 궁극기 게이지 일정량이 주기적으로 증가함");
-		Players On Hero(Hero(라이프위버), All Teams).ttek_text[2] = Custom String("단상이 좋아");
-		Players On Hero(Hero(라이프위버), All Teams).ttek_text[3] = Custom String("연꽃 단상의 쿨타임이 15초가 됨");
+		Players On Hero(Hero(정커퀸), All Teams).ttek_text[3] = Custom String("입체기동 톱니칼이 대폭 강화");
+		Players On Hero(Hero(해저드), All Teams).ttek_text[0] = Custom String("더 아픈 주사 {0}", Ability Icon String(Hero(해저드), Button(
+			Secondary Fire)));
+		Players On Hero(Hero(해저드), All Teams).ttek_text[1] = Custom String("불주사에 맞은 적을 넉백시킴");
+		Players On Hero(Hero(해저드), All Teams).ttek_text[2] = Custom String("광역 속박 {0}", Ability Icon String(Hero(해저드), Button(Ultimate)));
+		Players On Hero(Hero(해저드), All Teams).ttek_text[3] = Custom String("궁극기 사용 시 모든 적 속박");
 		Players On Hero(Hero(루시우), All Teams).ttek_text[0] = Custom String("루풍참");
 		Players On Hero(Hero(루시우), All Teams).ttek_text[1] = Custom String("SHIFT 사용 시 순간 가속");
 		Players On Hero(Hero(루시우), All Teams).ttek_text[2] = Custom String("소리분쇄");
 		Players On Hero(Hero(루시우), All Teams).ttek_text[3] = Custom String("궁 사용 시 범위 내 적에게 넉다운 부여");
-		Players On Hero(Hero(메르시), All Teams).ttek_text[0] = Custom String("의사");
+		Players On Hero(Hero(메르시), All Teams).ttek_text[0] = Custom String("의사 {0}", Hero Icon String(Hero(메르시)));
 		Players On Hero(Hero(메르시), All Teams).ttek_text[1] = Custom String("타인 부활 +1");
-		Players On Hero(Hero(메르시), All Teams).ttek_text[2] = Custom String("도박사");
-		Players On Hero(Hero(메르시), All Teams).ttek_text[3] = Custom String("무빙의 개수가 랜덤이 됨");
+		Players On Hero(Hero(메르시), All Teams).ttek_text[2] = Custom String("물리치료사 {0}", Hero Icon String(Hero(둠피스트)));
+		Players On Hero(Hero(메르시), All Teams).ttek_text[3] = Custom String("공격을 받은 적의 스턴 지속 시간이 1.2초로 증가");
 		Players On Hero(Hero(모이라), All Teams).ttek_text[0] = Custom String("도트 빙결 II");
 		Players On Hero(Hero(모이라), All Teams).ttek_text[1] = Custom String("도트 빙결의 지속시간이 3배 증가");
 		Players On Hero(Hero(모이라), All Teams).ttek_text[2] = Custom String("50 대 50");
@@ -16109,12 +15767,6 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(리퍼), All Teams).ttek_text[1] = Custom String("총을 쏠 수 있으며 맞은 적에게 스턴을 줌");
 		Players On Hero(Hero(리퍼), All Teams).ttek_text[2] = Custom String("영혼 수확");
 		Players On Hero(Hero(리퍼), All Teams).ttek_text[3] = Custom String("적이 죽을 때마다 궁 게이지 +30%");
-		Players On Hero(Hero(메이), All Teams).ttek_text[0] = Custom String("Let it go {0}", Ability Icon String(Hero(메이), Button(
-			Primary Fire)));
-		Players On Hero(Hero(메이), All Teams).ttek_text[1] = Custom String("스프레이 150회를 추가로 획득함");
-		Players On Hero(Hero(메이), All Teams).ttek_text[2] = Custom String("고드름 {0}", Ability Icon String(Hero(메이), Button(
-			Secondary Fire)));
-		Players On Hero(Hero(메이), All Teams).ttek_text[3] = Custom String("우클릭에 맞은 적에게 빙결상태 부여 (원거리 공격)");
 		Players On Hero(Hero(바스티온), All Teams).ttek_text[0] = Custom String("설정: 급습 {0}", Ability Icon String(Hero(트레이서), Button(
 			Ability 1)));
 		Players On Hero(Hero(바스티온), All Teams).ttek_text[1] = Custom String("설정: 강습 상태일 때 이동속도가 빨라짐");
@@ -16132,23 +15784,19 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[0] = Custom String("움직이면 게이 {0}", Hero Icon String(Hero(라이프위버)));
 		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[1] = Custom String("움직이지 않는 동안 무적 상태 (최대 10회)");
 		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[2] = Custom String("로켓 난사");
-		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[3] = Custom String("좌클릭을 쓰면 우클릭 쿨타임이 돌아옴");
-		Players On Hero(Hero(솜브라), All Teams).ttek_text[0] = Custom String("은신");
-		Players On Hero(Hero(솜브라), All Teams).ttek_text[1] = Custom String("항상 은신 상태가 됨");
+		Players On Hero(Hero(솔저: 76), All Teams).ttek_text[3] = Custom String("궁극기를 사용하는 동안 우클릭 쿨타임 무제한");
+		Players On Hero(Hero(솜브라), All Teams).ttek_text[0] = Custom String("5 Seconds");
+		Players On Hero(Hero(솜브라), All Teams).ttek_text[1] = Custom String("위치변환기 쿨타임이 5초 감소함");
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[2] = Custom String("해킹");
 		Players On Hero(Hero(솜브라), All Teams).ttek_text[3] = Custom String("적을 해킹할 수 있음");
-		Players On Hero(Hero(시메트라), All Teams).ttek_text[0] = Custom String("냉온고문 {0}", Hero Icon String(Hero(토르비욘)));
-		Players On Hero(Hero(시메트라), All Teams).ttek_text[1] = Custom String("버블버블을 맞은 적에게 화상 부여");
-		Players On Hero(Hero(시메트라), All Teams).ttek_text[2] = Custom String("레이저제모 {0}", Hero Icon String(Hero(윈스턴)));
-		Players On Hero(Hero(시메트라), All Teams).ttek_text[3] = Custom String("스턴 상태를 부여하는 좌클릭 활성화");
 		Players On Hero(Hero(애쉬), All Teams).ttek_text[0] = Custom String("적응완료");
 		Players On Hero(Hero(애쉬), All Teams).ttek_text[1] = Custom String("화상상태여도 이동속도가 감소하지 않음");
 		Players On Hero(Hero(애쉬), All Teams).ttek_text[2] = Custom String("정밀한 저격");
 		Players On Hero(Hero(애쉬), All Teams).ttek_text[3] = Custom String("치명타 공격 적중 시 1.5초 스턴");
 		Players On Hero(Hero(에코), All Teams).ttek_text[0] = Custom String("원펀맨");
 		Players On Hero(Hero(에코), All Teams).ttek_text[1] = Custom String("맞으면 바로 죽는 근접공격을 1회 할 수 있음");
-		Players On Hero(Hero(에코), All Teams).ttek_text[2] = Custom String("점착 폭탄");
-		Players On Hero(Hero(에코), All Teams).ttek_text[3] = Custom String("즉시 우클릭이 써짐\r\n (양자택일 우클릭 선택 시에만 작동)");
+		Players On Hero(Hero(에코), All Teams).ttek_text[2] = Custom String("쿨다운");
+		Players On Hero(Hero(에코), All Teams).ttek_text[3] = Custom String("공격 스킬 쿨타임이 20% 감소함");
 		Players On Hero(Hero(위도우메이커), All Teams).ttek_text[0] = Custom String("스파이더 킥 {0}", Ability Icon String(Hero(위도우메이커), Button(
 			Ability 2)));
 		Players On Hero(Hero(위도우메이커), All Teams).ttek_text[1] = Custom String("갈고리 이동 동선에 있는 적들을 넉다운시킴");
@@ -16182,7 +15830,174 @@ rule("[특전] 5라운드가 되면 특전 텍스트 지정됨 // 여기서 영�
 		Players On Hero(Hero(프레야), All Teams).ttek_text[1] = Custom String("맞은 적들에게 짧은 스턴 부여");
 		Players On Hero(Hero(프레야), All Teams).ttek_text[2] = Custom String("빠른 조준");
 		Players On Hero(Hero(프레야), All Teams).ttek_text[3] = Custom String("조준하는 동안 이동속도 증가");
-		"특전 활성화!"
-		All Players(All Teams).ttek_trigger = True;
+		If(Global.king_triggered == 2);
+			Filtered Array(All Players(All Teams), Current Array Element.was_kinged != True).ttek_trigger = True;
+	}
+}
+
+rule("[특전] 모든 특전 선택됨 (왕)")
+{
+	event
+	{
+		Subroutine;
+		TTEK_KING;
+	}
+
+	action
+	{
+		Destroy HUD Text(Global.KING.ttek_effect[0]);
+		Destroy HUD Text(Global.KING.ttek_effect[1]);
+		Destroy HUD Text(Global.KING.ttek_effect[2]);
+		Destroy HUD Text(Global.KING.ttek_effect[3]);
+		Global.KING.ttek_effect = Null;
+		Skip If(Global.KING.ttek_left_enable == True, 3);
+		Global.KING.ttek_left_enable = True;
+		Create HUD Text(Global.KING, Null, Custom String("   "), Null, Left, 40, Color(Green), Color(Green), Color(흰색), None,
+			Default Visibility);
+		Create HUD Text(Global.KING, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" '{2}'\n {1}",
+			Input Binding String(Button(Primary Fire)), Global.KING.ttek_text[1], Global.KING.ttek_text[0]), Left, 41, Color(Orange),
+			Color(흰색), Color(흰색), None, Default Visibility);
+		Skip If(Global.KING.ttek_right_enable == True, 3);
+		Global.KING.ttek_right_enable = True;
+		Create HUD Text(Global.KING, Null, Custom String("   "), Null, Left, 42, Color(Green), Color(Green), Color(흰색), None,
+			Default Visibility);
+		Create HUD Text(Global.KING, Custom String("{0} 특전", Icon String(Asterisk)), Null, Custom String(" '{2}'\n {1}",
+			Input Binding String(Button(Secondary Fire)), Global.KING.ttek_text[3], Global.KING.ttek_text[2]), Left, 43, Color(Orange),
+			Color(흰색), Color(흰색), None, Default Visibility);
+	}
+}
+
+rule("[왕] Is Game In Porgress 후 랜덤으로 왕 결정됨")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	action
+	{
+		Wait Until(Is Game In Progress, 99999);
+		Global.KING = Random Value In Array(All Players(All Teams));
+	}
+}
+
+rule("[왕] 왕 결정 (첫 스폰)")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Has Spawned(Global.KING) == True;
+		Is Alive(Global.KING) == True;
+		Global.king_triggered == 0;
+	}
+
+	action
+	{
+		Global.king_triggered = 1;
+		Call Subroutine(TTEK_TRIGGER);
+		Call Subroutine(TTEK_KING);
+		Global.KING.was_kinged = True;
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 부여됩니다!", Icon String(Fire)));
+	}
+}
+
+rule("[특전] 특전 활성화 조건 - 5라운드 (왕이었던 사람 제외)")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Global.RoundNumber == 5;
+	}
+
+	action
+	{
+		Global.king_triggered = 2;
+		Start Rule(TTEK_TRIGGER, Restart Rule);
+	}
+}
+
+rule("[왕] 왕 Text")
+{
+	event
+	{
+		Ongoing - Each Player;
+		All;
+		All;
+	}
+
+	action
+	{
+		Create HUD Text(Event Player, Null, Null, Custom String("{0} 왕: {1} {2}", Icon String(Fire), Global.KING, Hero Icon String(Hero Of(
+			Global.KING))), Right, 1.004, Color(흰색), Color(흰색), Color(Rose), Visible To and String, Default Visibility);
+	}
+}
+
+rule("[왕] 왕 교체: 죽음")
+{
+	event
+	{
+		Player Died;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Global.KING == Event Player;
+	}
+
+	action
+	{
+		Wait(0.500, Ignore Condition);
+		If(Is Alive(Attacker));
+			Global.KING = Attacker;
+			Big Message(Filtered Array(All Players(All Teams), Current Array Element != Global.KING), Custom String("{0} 왕이 교체됩니다!",
+				Icon String(Fire)));
+		Else;
+			Global.KING = Random Value In Array(Global.LivingPlayers);
+			Big Message(Filtered Array(All Players(All Teams), Current Array Element != Global.KING), Custom String("{0} 랜덤으로 왕이 결정됩니다!",
+				Icon String(Fire)));
+		End;
+		Global.king_triggered = 1;
+		Call Subroutine(TTEK_TRIGGER);
+		Call Subroutine(TTEK_KING);
+		Global.KING.was_kinged = True;
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 자동으로 선택됩니다!", Icon String(Fire)));
+	}
+}
+
+rule("[왕] 왕 교체: 나감")
+{
+	event
+	{
+		Player Left Match;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Event Player == Global.KING;
+	}
+
+	action
+	{
+		Wait(0.500, Ignore Condition);
+		Global.KING = Random Value In Array(Global.LivingPlayers);
+		Big Message(Filtered Array(All Players(All Teams), Current Array Element != Global.KING), Custom String("{0} 랜덤으로 왕이 결정됩니다!",
+			Icon String(Fire)));
+		Global.king_triggered = 1;
+		Global.KING.was_kinged = True;
+		Call Subroutine(TTEK_TRIGGER);
+		Call Subroutine(TTEK_KING);
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 자동으로 선택됩니다!", Icon String(Fire)));
 	}
 }
