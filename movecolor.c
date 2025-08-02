@@ -17,10 +17,8 @@ variables
 		13: NextRoundTrigger
 		14: ArenaID
 		15: DynamicTrigger
-		26: couple_list
 		27: BLH
 		28: HUDR
-		29: HUDS
 		30: RANK
 		31: RANKER
 		32: DH
@@ -29,14 +27,10 @@ variables
 		35: JQC
 		36: INDEX
 		37: K_ALREADYUSED_R
-		38: COUPLE_1
 		39: TRUE_VECTOR
 		40: K_ALREADYUSED
-		41: COUPLE_2
 		42: theta
 		43: rightindex
-		44: COUPLE_3
-		45: COUPLE_4
 		46: door_count
 		47: GD_playerarray
 		48: door_effect2
@@ -45,9 +39,6 @@ variables
 		51: door_effect5
 		52: door_effect6
 		53: door_count_effect
-		54: COUPLE_5
-		55: COUPLE_6
-		56: SOLO
 		57: survive_player_array
 		58: death_player_array
 		59: rosecell
@@ -71,6 +62,11 @@ variables
 		77: bati_theta
 		78: KING
 		79: king_triggered
+		80: AbnormalList
+		81: IsSelectedAbnormal
+		82: AbnormalIdx
+		83: randomSurviver
+		84: AbnormalString
 
 	player:
 		0: p_CurrentMode
@@ -167,6 +163,7 @@ variables
 		114: queen_time
 		115: queen_t
 		116: junk_var
+		117: mujeok_effect
 }
 
 subroutines
@@ -181,6 +178,7 @@ subroutines
 	13: BATI_TEL_TRIGGER
 	14: TTEK_TRIGGER
 	15: TTEK_KING
+	16: Abnormal7
 }
 
 rule("초기 세팅 및 게임 설명 HUD (수정)")
@@ -214,6 +212,8 @@ rule("초기 세팅 및 게임 설명 HUD (수정)")
 		Enable Death Spectate Target HUD(All Players(All Teams));
 		Enable Death Spectate All Players(All Players(All Teams));
 		Disable Built-In Game Mode Music;
+		Set Move Speed(All Players(All Teams), Global.IsSelectedAbnormal[4] ? 180 : 120);
+		Set Jump Vertical Speed(All Players(All Teams), Global.IsSelectedAbnormal[5] ? 200 : 100);
 		"구역 설정"
 		Global.Z = Round To Integer(X Component Of(Nearest Walkable Position(Vector(100, 100, 100))), To Nearest);
 		Wait(0.250, Ignore Condition);
@@ -224,6 +224,9 @@ rule("초기 세팅 및 게임 설명 HUD (수정)")
 			All Teams), Ability Icon String(Hero(메르시), Button(Ability 1))), Null, Null, Top, 0, Color(흰색), Color(흰색), Color(흰색), String,
 			Default Visibility);
 		Global.HUDR = Last Text ID;
+		Create HUD Text(Global.IsSelectedAbnormal[Global.AbnormalIdx] ? All Players(All Teams) : Null, Null, Custom String(
+			"{0} 적용된 변칙: {1}", Icon String(Spiral), Global.AbnormalString[Global.AbnormalIdx]), Null, Top, -20, Null, Color(Sky Blue),
+			Null, None, Default Visibility);
 		Create HUD Text(All Players(All Teams), Custom String("제작 : KISUM / 250727 ver\r"), Custom String(
 			" originator : THEFOOT\r, 파이리\r\n special thx : Dote6, YaksuStn\r\n server load : {0}\r\n {1} {2}번째 구역", Custom String(
 			"{0} | {1}", Server Load, Server Load Average), Current Map, 1 + Global.ArenaID), Custom String(
@@ -437,6 +440,9 @@ rule("[Sub] OutsidePenalty : Outside Rule Penalty by KISUM")
 		Event Player.Out_side = 0;
 		Loop If(Global.RoundNumber < 3 && Distance Between(Event Player, Global.ArenaCentre) > Global.ArenaRadius);
 		Abort If(Global.RoundNumber < 3 && Distance Between(Event Player, Global.ArenaCentre) < Global.ArenaRadius);
+		Skip If(Global.IsSelectedAbnormal[8] != 1, 2);
+		Kill(Event Player, Null);
+		Small Message(Event Player, Custom String("[변칙] 장외 패널티 시 사망!"));
 		Event Player.p_CurrentMode += 1;
 		Set Status(Event Player, Null, Burning, Event Player.p_CurrentMode * 2);
 		Set Status(Event Player, Null, Hacked, Event Player.p_CurrentMode * 2);
@@ -654,7 +660,7 @@ rule("화염 상태 종료 (특전관련 수정)")
 		Else If(Hero Of(Event Player) == Players On Hero(Hero(루시우), All Teams));
 			Set Move Speed(Event Player, 111 + Global.RoundNumber * 9);
 		Else;
-			Set Move Speed(Event Player, 120);
+			Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 		End;
 	}
 }
@@ -2543,7 +2549,7 @@ rule("Round Over | 패자부활전 포함")
 		Global.CorrectColour = 0;
 		Global.SphereID = Empty Array;
 		Wait(0.500, Ignore Condition);
-		Global.RoundNumber += 1;
+		Global.RoundNumber += Global.IsSelectedAbnormal[3] ? 2 : 1;
 		Global.NextRoundTrigger = 1;
 	}
 }
@@ -2634,6 +2640,10 @@ rule("[패자부활전] : 발동 (팀전 제외)")
 			Global.target_player = Random Value In Array(Global.survive_player_array);
 			Global.rosecell = Random Integer(0, 5);
 			Global.rosecell = Global.SphereLocations[Global.rosecell];
+			Skip If(Global.IsSelectedAbnormal[1] != 1, 2);
+			Global.death_player_array = Append To Array(Global.death_player_array, Filtered Array(Global.survive_player_array,
+				Current Array Element != Global.target_player));
+			Global.survive_player_array = Null;
 			Global.survive_player_array.consolation_survive = 1;
 			Teleport(Global.death_player_array, Global.ArenaCentre + Vector(0, 12, 0));
 			Resurrect(Global.death_player_array);
@@ -3332,14 +3342,15 @@ rule("Check if Eligible for Tiebreaker")
 
 	condition
 	{
+		Global.TiebreakerTrigger == 1;
+		Array Contains(Global.LivingPlayers, Event Player) != True;
+		Global.RaceTrigger != 1;
 		Score Of(Event Player) == Max(Max(Max(Max(Max(Max(Max(Max(Max(Max(Max(Score Of(Players In Slot(0, All Teams)), Score Of(
 			Players In Slot(8, All Teams))), Score Of(Players In Slot(9, All Teams))), Score Of(Players In Slot(10, All Teams))), Score Of(
 			Players In Slot(11, All Teams))), Score Of(Players In Slot(1, All Teams))), Score Of(Players In Slot(2, All Teams))), Score Of(
 			Players In Slot(3, All Teams))), Score Of(Players In Slot(4, All Teams))), Score Of(Players In Slot(5, All Teams))), Score Of(
 			Players In Slot(6, All Teams))), Score Of(Players In Slot(7, All Teams)));
-		Global.TiebreakerTrigger == 1;
-		Array Contains(Global.LivingPlayers, Event Player) != True;
-		Global.RaceTrigger != 1;
+		Global.IsSelectedAbnormal[0] != 1;
 	}
 
 	action
@@ -3651,7 +3662,7 @@ rule("[겐지] : 튕겨내기 - 질주")
 	{
 		Set Move Speed(Event Player, 300);
 		Wait(1.800, Ignore Condition);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -4030,7 +4041,7 @@ rule("[라인하르트] : 돌진 - 1")
 		Abort If Condition Is False;
 		Set Move Speed(Event Player, 500);
 		Wait(3, Ignore Condition);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -4050,7 +4061,7 @@ rule("[라인하르트] : 돌진 - 2")
 
 	action
 	{
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -4147,7 +4158,7 @@ rule("[리퍼] : 죽음의 꽃 - 리퍼 이동속도")
 		Big Message(All Players(All Teams), Custom String("{0} 리퍼 : 죽어~ 죽어~", Hero Icon String(Hero(리퍼))));
 		Set Move Speed(Event Player, 300);
 		Wait(3, Ignore Condition);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -5502,53 +5513,6 @@ rule("[한조] : 용이여, 적들을 삼켜라 - 번개 이펙트 생성")
 	}
 }
 
-rule("[한조] : 용이여, 적들을 삼켜라 - 번개 이펙트 삭제")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Match Round == 1;
-	}
-
-	action
-	{
-		Global.R = Custom String("오른쪽닭다리");
-		Wait(0.500, Ignore Condition);
-		Global.R = Custom String("빨대");
-		Wait(0.500, Ignore Condition);
-		Global.R = Custom String("Meihelpu");
-		Wait(0.500, Ignore Condition);
-		Global.R = Custom String("KDH3376");
-		Wait(0.500, Ignore Condition);
-		Global.R = Custom String("주거라주거라주거");
-		Wait(0.500, Ignore Condition);
-		Global.R = Custom String("전갑길");
-		Wait(0.500, Ignore Condition);
-		Global.R = Custom String("아또마끼");
-		Wait(0.500, Ignore Condition);
-		Global.R = Custom String("Aimdot76");
-		Wait(0.500, Ignore Condition);
-		Global.HUDS = Custom String("FIVE");
-		Wait(0.500, Ignore Condition);
-		Global.HUDS = Custom String("Hermè s");
-		Wait(0.500, Ignore Condition);
-		Global.HUDS = Custom String("금빛미키마우스");
-		Wait(0.500, Ignore Condition);
-		Global.HUDS = Custom String("비미비키");
-		Wait(0.500, Ignore Condition);
-		Global.HUDS = Custom String("OrOl");
-		Wait(0.500, Ignore Condition);
-		Global.HUDS = Custom String("우빈아나는어때씀");
-		Wait(0.500, Ignore Condition);
-		Global.HUDS = Custom String("gus1rms1");
-		Wait(0.500, Ignore Condition);
-	}
-}
-
 rule("[솔저: 76] : 능력 설명 *")
 {
 	event
@@ -6582,50 +6546,6 @@ rule("[D.VA] : 송하나 - 좌클릭 비허용 by KISUM")
 	action
 	{
 		Set Primary Fire Enabled(Event Player, False);
-	}
-}
-
-rule("[D.VA] : 송하나 - 좌클릭 카운트 by KISUM")
-{
-	event
-	{
-		Ongoing - Global;
-	}
-
-	condition
-	{
-		Match Round == 1;
-	}
-
-	action
-	{
-		Global.BLH = Custom String("저칼슘");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("songswing");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("Redboy1076");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("죄와벌");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("URUZ");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("kidfsf");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("갱돌");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("Cool");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("맥크리");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("미친마법사");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("데스나이트");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("초보자");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("엄청난자객");
-		Wait(0.500, Ignore Condition);
-		Global.BLH = Custom String("Dolphin");
 	}
 }
 
@@ -9206,7 +9126,7 @@ rule("[레킹볼] : 속도이상 무효화 by KISUM")
 
 	action
 	{
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 		Small Message(Event Player, Custom String("{0} 레킹볼 : 변속 무효화 발동!", Hero Icon String(Hero(레킹볼))));
 		Event Player.M = Players Within Radius(Event Player, 7.500, Opposite Team Of(Team Of(Event Player)), Surfaces);
 		Event Player.M = Filtered Array(Event Player.M, Current Array Element != Event Player);
@@ -10804,7 +10724,7 @@ rule("[벤처] : 잠복 by KISUM")
 		Set Move Speed(Event Player, 180);
 		Wait(0.500, Ignore Condition);
 		Loop If(Is Using Ability 1(Event Player) == True);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -11244,29 +11164,6 @@ rule("네팔 성소 All 맵 낙사 방지 by KISUM")
 	{
 		Current Map == Map(네팔 성소);
 		Y Component Of(Position Of(Event Player)) <= 120;
-	}
-
-	action
-	{
-		Wait(0.016, Abort When False);
-		Call Subroutine(OutsidePenalty);
-	}
-}
-
-disabled rule("도라도 1번 맵 낙사 방지 by KISUM")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Current Map == Map(도라도);
-		Global.ArenaID == 1;
-		Y Component Of(Position Of(Event Player)) <= 10;
 	}
 
 	action
@@ -12154,7 +12051,7 @@ rule("워크샵 그린 스크린(KTX) 속도 감소 by Dote6")
 					Set Move Speed(Event Player, 111 + Global.RoundNumber * 9);
 				End;
 			Else;
-				Set Move Speed(Event Player, 100);
+				Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 			End;
 		Else;
 			Event Player.on_train = 1;
@@ -12226,96 +12123,6 @@ rule("워크샵그린 스크린(KTX) 안내 by KISUM")
 			Color(Sky Blue), Color(흰색), Color(흰색), Visible To and String, Visible Always);
 		Create HUD Text(All Players(All Teams), Null, Custom String("   "), Null, Right, -1, Color(Green), Color(Green), Color(흰색),
 			Visible To and String, Visible Always);
-	}
-}
-
-rule("[Mission] : 커플미션 발동 by Dote6")
-{
-	event
-	{
-		Ongoing - Each Player;
-		All;
-		All;
-	}
-
-	condition
-	{
-		Custom String("{0}", Event Player) == Global.RANK;
-		Has Spawned(Event Player) == True;
-		Is Alive(Event Player) == True;
-		Is Button Held(Event Player, Button(Jump)) == True;
-		Is Button Held(Event Player, Button(Crouch)) == True;
-		Global.RoundNumber <= 1;
-		Match Time >= 300;
-	}
-
-	action
-	{
-		Create HUD Text(All Players(All Teams), Custom String(""), Custom String("  "), Null, Right, 1.750, Color(Violet), Color(흰색),
-			Color(흰색), Visible To and String, Default Visibility);
-		Create HUD Text(All Players(All Teams), Custom String("♥ 커플 미션"), Custom String("커플끼리 제일 오래 살아남으세요!"), Null, Right, 1.800, Color(
-			Violet), Color(흰색), Color(흰색), Visible To and String, Default Visibility);
-		Create HUD Text(All Players(All Teams), Null, Custom String("   "), Null, Right, 1.850, Color(Green), Color(Green), Color(흰색),
-			Visible To and String, Visible Never);
-		Global.couple_list = All Living Players(All Teams);
-		Global.couple_list = Randomized Array(Global.couple_list);
-		If(Count Of(Global.couple_list) >= 2);
-			Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0}  {1}  {2}", Custom String("{0} {1}", Global.couple_list[0],
-				Hero Icon String(Hero Of(Global.couple_list[0]))), Icon String(Heart), Custom String("{0} {1}", Global.couple_list[1],
-				Hero Icon String(Hero Of(Global.couple_list[1])))), Right, 1.900, Color(흰색), Color(흰색), Color(Rose), Visible To and String,
-				Default Visibility);
-			Wait(0.016, Ignore Condition);
-			Global.COUPLE_1 = Last Text ID;
-		End;
-		If(Count Of(Global.couple_list) >= 4);
-			Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0}  {1}  {2}", Custom String("{0} {1}", Global.couple_list[2],
-				Hero Icon String(Hero Of(Global.couple_list[2]))), Icon String(Heart), Custom String("{0} {1}", Global.couple_list[3],
-				Hero Icon String(Hero Of(Global.couple_list[3])))), Right, 1.910, Color(흰색), Color(흰색), Color(Rose), Visible To and String,
-				Default Visibility);
-			Wait(0.016, Ignore Condition);
-			Global.COUPLE_2 = Last Text ID;
-		End;
-		If(Count Of(Global.couple_list) >= 6);
-			Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0}  {1}  {2}", Custom String("{0} {1}", Global.couple_list[4],
-				Hero Icon String(Hero Of(Global.couple_list[4]))), Icon String(Heart), Custom String("{0} {1}", Global.couple_list[5],
-				Hero Icon String(Hero Of(Global.couple_list[5])))), Right, 1.920, Color(흰색), Color(흰색), Color(Rose), Visible To and String,
-				Default Visibility);
-			Wait(0.016, Ignore Condition);
-			Global.COUPLE_3 = Last Text ID;
-		End;
-		If(Count Of(Global.couple_list) >= 8);
-			Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0}  {1}  {2}", Custom String("{0} {1}", Global.couple_list[6],
-				Hero Icon String(Hero Of(Global.couple_list[6]))), Icon String(Heart), Custom String("{0} {1}", Global.couple_list[7],
-				Hero Icon String(Hero Of(Global.couple_list[7])))), Right, 1.940, Color(흰색), Color(흰색), Color(Rose), Visible To and String,
-				Default Visibility);
-			Wait(0.016, Ignore Condition);
-			Global.COUPLE_4 = Last Text ID;
-		End;
-		If(Count Of(Global.couple_list) >= 10);
-			Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0}  {1}  {2}", Custom String("{0} {1}", Global.couple_list[8],
-				Hero Icon String(Hero Of(Global.couple_list[8]))), Icon String(Heart), Custom String("{0} {1}", Global.couple_list[9],
-				Hero Icon String(Hero Of(Global.couple_list[9])))), Right, 1.950, Color(흰색), Color(흰색), Color(Rose), Visible To and String,
-				Default Visibility);
-			Wait(0.016, Ignore Condition);
-			Global.COUPLE_5 = Last Text ID;
-		End;
-		If(Count Of(Global.couple_list) == 12);
-			Create HUD Text(All Players(All Teams), Null, Null, Custom String("{0}  {1}  {2}", Custom String("{0} {1}", Global.couple_list[10],
-				Hero Icon String(Hero Of(Global.couple_list[10]))), Icon String(Heart), Custom String("{0} {1}", Global.couple_list[11],
-				Hero Icon String(Hero Of(Global.couple_list[11])))), Right, 1.960, Color(흰색), Color(흰색), Color(Rose), Visible To and String,
-				Default Visibility);
-			Wait(0.016, Ignore Condition);
-			Global.COUPLE_6 = Last Text ID;
-		End;
-		If(Count Of(Global.couple_list) % 2 != 0);
-			Create HUD Text(All Players(All Teams), Null, Null, Custom String("나는 SOLO {2} {0} {1}", Global.couple_list[-1 + Count Of(
-				Global.couple_list)], Hero Icon String(Hero Of(Global.couple_list[-1 + Count Of(Global.couple_list)])), Icon String(Skull)),
-				Right, 1.970, Color(흰색), Color(흰색), Color(Red), Visible To and String, Default Visibility);
-			Wait(0.016, Ignore Condition);
-			Global.SOLO = Last Text ID;
-		End;
-		Create HUD Text(All Players(All Teams), Null, Custom String("   "), Null, Right, 1.980, Color(Green), Color(Green), Color(흰색),
-			Visible To and String, Visible Never);
 	}
 }
 
@@ -12700,7 +12507,7 @@ rule("[특전] 로드호그 좌클릭 - 신속의 물약 (by 누구인)")
 	{
 		Set Move Speed(Event Player, 240);
 		Wait Until(Is Firing Secondary(Event Player) == False, 99999);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -12965,7 +12772,7 @@ rule("[특전] 시그마 좌클릭 : 이동속도 제한")
 	{
 		Set Move Speed(Event Player, 80);
 		Wait Until(Is In Air(Event Player) == False, 99999);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -13831,7 +13638,7 @@ rule("[특전] 아나 우클릭")
 	{
 		Set Move Speed(Event Player, 200);
 		Wait Until(Is Using Ultimate(Event Player) == False, 99999);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -13960,7 +13767,7 @@ rule("주노 우클 특전 효과")
 	{
 		Set Move Speed(Event Player, Random Integer(240, 360));
 		Wait(6.540, Ignore Condition);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -14204,7 +14011,7 @@ rule("바스티온 좌클 특전 효과")
 	{
 		Set Move Speed(Event Player, 184.615);
 		Wait Until(Is Using Ability 1(Event Player) == False, 99999);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -14371,7 +14178,7 @@ rule("소전 우클 특전 효과")
 	{
 		Set Move Speed(Event Player, 200);
 		Wait Until(Is Using Ability 1(Event Player) == False, 99999);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -14544,7 +14351,7 @@ rule("애쉬 좌클 특전 효과")
 
 	action
 	{
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 	}
 }
 
@@ -15088,7 +14895,7 @@ rule("프레야 우클 특전 효과")
 	{
 		Set Move Speed(Event Player, 500);
 		Wait Until(Is Firing Primary(Event Player) == True || Is Button Held(Event Player, Button(Secondary Fire)) == False, 100000000);
-		Set Move Speed(Event Player, 120);
+		Set Move Speed(Event Player, Global.IsSelectedAbnormal[4] ? 180 : 120);
 		Wait(0.250, Ignore Condition);
 	}
 }
@@ -15893,6 +15700,7 @@ rule("[왕] 왕 결정 (첫 스폰)")
 		Has Spawned(Global.KING) == True;
 		Is Alive(Global.KING) == True;
 		Global.king_triggered == 0;
+		Global.IsSelectedAbnormal[6] != 1;
 	}
 
 	action
@@ -15999,5 +15807,196 @@ rule("[왕] 왕 교체: 나감")
 		Call Subroutine(TTEK_TRIGGER);
 		Call Subroutine(TTEK_KING);
 		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 자동으로 선택됩니다!", Icon String(Fire)));
+	}
+}
+
+rule("[변칙] 워크샵 콤보, 텍스트 및 랜덤 결정")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	action
+	{
+		Wait(5, Ignore Condition);
+		Global.AbnormalList = Array(Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("승자결정전 전원 부활"), 5, 0,
+			10, 1), Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("패자부활전 전원 참가"), 5, 0, 10, 2),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("10라운드 전원 부활"), 5, 0, 10, 3),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("라운드 2씩 증가"), 5, 0, 10, 4),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("이동속도 50% 증가"), 5, 0, 10, 5),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("점프력 2배"), 5, 0, 10, 6),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("모두가 왕"), 5, 0, 10, 7),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("적 처치 시 다음 라운드 완전무적"), 5, 0, 10, 8),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("장외 패널티 = 사망"), 5, 0, 10, 9),
+			Workshop Setting Integer(Custom String("변칙 (최소 0% ~ 최대 10% 선택가능)"), Custom String("라운드 종료 시 랜덤 1명 부활"), 5, 0, 10, 10));
+		Global.AbnormalIdx = (Random Integer(0, 99999) + Global.ArenaID + Number Of Players(All Teams) + Server Load) % 10;
+		Global.IsSelectedAbnormal[Global.AbnormalIdx] = (Random Integer(0, 100000) + Global.ArenaID + Number Of Players(All Teams)
+			+ Server Load Average) % 10 + 1 <= Global.AbnormalList[Global.AbnormalIdx] ? 1 : 0;
+		Global.AbnormalString = Array(Custom String("승자결정전 전원 부활"), Custom String("패자부활전 전원 참가"), Custom String("10라운드 전원 부활"),
+			Custom String("라운드 2씩 증가"), Custom String("이동속도 50% 증가"), Custom String("점프력 2배"), Custom String("모두가 왕"), Custom String(
+			"적 처치 시 다음 라운드 완전무적"), Custom String("장외 패널티 = 사망"), Custom String("라운드 종료 시 랜덤 1명 부활"));
+	}
+}
+
+disabled rule("[변칙] 테스트용 코드 - Disable 할 것")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	action
+	{
+		Wait(5, Ignore Condition);
+		Global.AbnormalIdx = 6;
+		Global.IsSelectedAbnormal[Global.AbnormalIdx] = 1;
+	}
+}
+
+rule("[변칙 0] 승자결정전 시 전원부활")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Global.TiebreakerTrigger == 1;
+		Global.IsSelectedAbnormal[0] == 1;
+		Global.RaceTrigger != 1;
+	}
+
+	action
+	{
+		Filtered Array(All Players(All Teams), Has Spawned(Current Array Element)).Z = 0;
+		Set Player Score(All Players(All Teams), 69);
+		Teleport(All Players(All Teams), Global.ArenaCentre + Vector(0, 12, 0));
+		Resurrect(All Players(All Teams));
+		Wait(0.250, Ignore Condition);
+		Small Message(All Living Players(All Teams), Custom String("[변칙] 승자결정전이므로 전원 부활합니다!"));
+		Global.LivingPlayers = All Living Players(All Teams);
+	}
+}
+
+rule("[변칙 2] 10라운드 전원부활")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Global.RoundNumber == 10;
+		Global.IsSelectedAbnormal[2] == 1;
+	}
+
+	action
+	{
+		Filtered Array(All Players(All Teams), Has Spawned(Current Array Element)).Z = 0;
+		Set Player Score(All Players(All Teams), 10);
+		Resurrect(All Players(All Teams));
+		Global.LivingPlayers = All Living Players(All Teams);
+		Small Message(All Living Players(All Teams), Custom String("[변칙] 10라운드가 되어 전원이 부활합니다!"));
+	}
+}
+
+rule("[변칙 6] 모두가 왕")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Is Game In Progress == True;
+		Global.IsSelectedAbnormal[6] == 1;
+	}
+
+	action
+	{
+		Wait(1, Ignore Condition);
+		Global.KING = Random Value In Array(Filtered Array(All Living Players(All Teams), Current Array Element.was_kinged != True));
+		Abort If(Global.KING == Null);
+		Global.king_triggered = 1;
+		Call Subroutine(TTEK_TRIGGER);
+		Call Subroutine(TTEK_KING);
+		Global.KING.was_kinged = True;
+		Big Message(Global.KING, Custom String("{0} 당신은 왕입니다! 모든 특전이 부여됩니다!", Icon String(Fire)));
+		Loop If Condition Is True;
+	}
+}
+
+rule("[변칙 7] 적 처치 시 다음 라운드 완전무적 - 트리거")
+{
+	event
+	{
+		Player Dealt Final Blow;
+		All;
+		All;
+	}
+
+	condition
+	{
+		Global.IsSelectedAbnormal[7] == 1;
+	}
+
+	action
+	{
+		Start Rule(Abnormal7, Do Nothing);
+	}
+}
+
+rule("[변칙 7] 적 처치 시 다음 라운드 완전무적 - 서브루틴")
+{
+	event
+	{
+		Subroutine;
+		Abnormal7;
+	}
+
+	action
+	{
+		Wait Until(Match Time > 30, 99999);
+		Wait Until(Match Time <= 30, 99999);
+		Abort If(Is Dead(Event Player));
+		Set Status(Event Player, Null, Unkillable, 9999);
+		Create Effect(All Players(All Teams), Good Aura, Color(Rose), Event Player, 1, Visible To Position and Radius);
+		Event Player.mujeok_effect = Last Created Entity;
+		Small Message(Event Player, Custom String("[변칙] 현재 라운드 완전무적!"));
+		Wait Until(Match Time == 0, 99999);
+		Clear Status(Event Player, Unkillable);
+		Destroy Effect(Event Player.mujeok_effect);
+		Small Message(Event Player, Custom String("[변칙] 완전 무적 종료"));
+	}
+}
+
+rule("[변칙 9] 라운드 종료 시 랜덤 1명 부활")
+{
+	event
+	{
+		Ongoing - Global;
+	}
+
+	condition
+	{
+		Match Time == 0;
+		Global.TiebreakerTrigger != 1;
+		Global.consolation_on != 1;
+		Global.IsSelectedAbnormal[9] == 1;
+	}
+
+	action
+	{
+		Wait(2, Ignore Condition);
+		Abort If(Count Of(Global.LivingPlayers) == 1);
+		Global.randomSurviver = Random Value In Array(Filtered Array(All Dead Players(All Teams), Current Array Element.Z != 1));
+		Resurrect(Global.randomSurviver);
+		Global.LivingPlayers = Append To Array(Global.LivingPlayers, Global.randomSurviver);
+		Set Player Score(Global.randomSurviver, Global.RoundNumber);
+		Small Message(Global.randomSurviver, Custom String("[변칙] 부활했습니다!"));
 	}
 }
